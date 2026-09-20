@@ -11,7 +11,7 @@ using System.Windows.Shapes;
 using OpenTK.Wpf;
 using OpenTK.Graphics.OpenGL;
 
-namespace RayTracer
+namespace RayTracer.Views
 {
     public partial class MainWindow : Window
     {
