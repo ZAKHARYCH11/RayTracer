@@ -7,15 +7,16 @@
         xmlns:glWpfControl="clr-namespace:OpenTK.Wpf;assembly=GLWpfControl"
         mc:Ignorable="d"
         Title="Трассировщик лучей" 
-        Height="720" Width="1280" 
-        MinHeight="600" MinWidth="1000"
+        Width="1280" Height="720" 
+        MinWidth="1000" MinHeight="600" 
         FontFamily="Segoe UI"
         Background="#252526">
 
-    <!-- Глобальные стили для темной темы -->
     <Window.Resources>
         <SolidColorBrush x:Key="PanelBg" Color="#2D2D30"/>
         <SolidColorBrush x:Key="ElementBg" Color="#3E3E42"/>
+        <SolidColorBrush x:Key="SelectedBg" Color="#505050"/>
+        <SolidColorBrush x:Key="Pressed" Color="#434343"/>
         <SolidColorBrush x:Key="TextColor" Color="#F1F1F1"/>
         <SolidColorBrush x:Key="BorderColor" Color="#3F3F46"/>
         <SolidColorBrush x:Key="DarkBg" Color="#1E1E1E" />
@@ -33,13 +34,58 @@
             <Setter Property="BorderBrush" Value="{StaticResource BorderColor}"/>
             <Setter Property="Padding" Value="5"/>
             <Setter Property="Margin" Value="2"/>
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="Button">
+                        <Border x:Name="Border" Background="{TemplateBinding Background}"
+                                BorderBrush="{TemplateBinding BorderBrush}"
+                                Padding="{TemplateBinding Padding}">
+                            <ContentPresenter x:Name="ContentSite"
+                                VerticalAlignment="Center"
+                                HorizontalAlignment="Center"
+                                Margin="{TemplateBinding Padding}"/>
+                        </Border>
+                        <ControlTemplate.Triggers>
+                            <Trigger Property="IsMouseOver" SourceName="Border" Value="True">
+                                <Setter TargetName="Border" Property="Background" Value="{StaticResource SelectedBg}"/>
+                            </Trigger>
+
+                            <Trigger Property="IsPressed" Value="True">
+                                <Setter TargetName="Border" Property="Background" Value="{StaticResource Pressed}"/>
+                            </Trigger>
+                        </ControlTemplate.Triggers>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
         </Style>
 
         <Style TargetType="TextBox">
             <Setter Property="Background" Value="{StaticResource DarkBg}"/>
             <Setter Property="Foreground" Value="{StaticResource TextColor}"/>
             <Setter Property="BorderBrush" Value="{StaticResource BorderColor}"/>
+            <Setter Property="BorderThickness" Value="1"/>
             <Setter Property="Padding" Value="2"/>
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="TextBox">
+                        <Border x:Name="Border" Background="{TemplateBinding Background}"
+                                BorderBrush="{TemplateBinding BorderBrush}"
+                                BorderThickness="{TemplateBinding BorderThickness}"
+                                Padding="{TemplateBinding Padding}">
+                            <ScrollViewer x:Name="PART_ContentHost" Margin="0"/>
+                        </Border>
+                        <ControlTemplate.Triggers>
+                            <Trigger Property="IsMouseOver" Value="True">
+                                <Setter TargetName="Border" Property="BorderBrush" Value="{StaticResource SelectedBg}"/>
+                            </Trigger>
+
+                            <Trigger Property="IsKeyboardFocused" Value="True">
+                                <Setter TargetName="Border" Property="BorderBrush" Value="#007ACC"/>
+                            </Trigger>
+                        </ControlTemplate.Triggers>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
         </Style>
 
         <Style TargetType="ListBox">
@@ -48,7 +94,34 @@
             <Setter Property="BorderBrush" Value="{StaticResource BorderColor}"/>
         </Style>
 
-        <!-- Исправленный стиль для TabControl -->
+        <Style TargetType="ListBoxItem">
+            <Setter Property="Padding" Value="5,2"/>
+            <Setter Property="Foreground" Value="{StaticResource TextColor}"/>
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="ListBoxItem">
+                        <Border x:Name="Border" Background="Transparent" Padding="{TemplateBinding Padding}">
+                            <ContentPresenter VerticalAlignment="Center" />
+                        </Border>
+                        <ControlTemplate.Triggers>
+                            <Trigger Property="IsMouseOver" Value="True">
+                                <Setter TargetName="Border" Property="Background" Value="{StaticResource ElementBg}"/>
+                            </Trigger>
+                            <Trigger Property="IsSelected" Value="True">
+                                <Setter TargetName="Border" Property="Background" Value="{StaticResource SelectedBg}"/>
+                                <Setter Property="Foreground" Value="{StaticResource TextColor}"/>
+                            </Trigger>
+                        </ControlTemplate.Triggers>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+
+        <Style TargetType="StatusBar">
+            <Setter Property="Background" Value="{StaticResource DarkBg}"/>
+            <Setter Property="Foreground" Value="{StaticResource TextColor}"/>
+        </Style>
+
         <Style TargetType="TabControl">
             <Setter Property="Background" Value="{StaticResource PanelBg}"/>
             <Setter Property="Foreground" Value="{StaticResource TextColor}"/>
@@ -56,14 +129,17 @@
         </Style>
 
         <Style TargetType="TabItem">
-            <Setter Property="Background" Value="{StaticResource ElementBg}"/>
+            <Setter Property="Background" Value="{StaticResource DarkBg}"/>
             <Setter Property="Foreground" Value="{StaticResource TextColor}"/>
             <Setter Property="Padding" Value="15,5"/>
             <Setter Property="BorderThickness" Value="0"/>
             <Setter Property="Template">
                 <Setter.Value>
                     <ControlTemplate TargetType="TabItem">
-                        <Border x:Name="HeaderBorder" Background="{TemplateBinding Background}" Margin="0,0,1,0">
+                        <Border x:Name="HeaderBorder"
+                                Background="{TemplateBinding Background}"
+                                Margin="0,0,0,0"
+                                CornerRadius="4,4,0,0">
                             <ContentPresenter x:Name="ContentSite"
                                               VerticalAlignment="Center"
                                               HorizontalAlignment="Center"
@@ -71,13 +147,10 @@
                                               Margin="{TemplateBinding Padding}"/>
                         </Border>
                         <ControlTemplate.Triggers>
-                            <!-- Триггер реагирует ТОЛЬКО на наведение на сам заголовок (HeaderBorder) -->
                             <Trigger Property="IsMouseOver" SourceName="HeaderBorder" Value="True">
-                                <Setter TargetName="HeaderBorder" Property="Background" Value="#4E4E52"/>
+                                <Setter TargetName="HeaderBorder" Property="Background" Value="{StaticResource ElementBg}"/>
                             </Trigger>
 
-                            <!-- IsSelected идет ПОСЛЕ наведения. Если вкладка выбрана, она остается темной (#2D2D30) -->
-                            <!-- и игнорирует мышь -->
                             <Trigger Property="IsSelected" Value="True">
                                 <Setter TargetName="HeaderBorder" Property="Background" Value="{StaticResource PanelBg}"/>
                                 <Setter Property="Foreground" Value="White"/>
@@ -88,9 +161,8 @@
             </Setter>
         </Style>
 
-        <!-- Полностью переписанный стиль для Меню (убивает белые рамки и полосы) -->
         <Style TargetType="Menu">
-            <Setter Property="Background" Value="{StaticResource PanelBg}" />
+            <Setter Property="Background" Value="{StaticResource DarkBg}" />
             <Setter Property="Foreground" Value="{StaticResource TextColor}" />
         </Style>
 
@@ -99,7 +171,7 @@
             <Setter Property="Template">
                 <Setter.Value>
                     <ControlTemplate TargetType="MenuItem">
-                        <Border x:Name="Border" Background="{StaticResource PanelBg}" BorderThickness="0">
+                        <Border x:Name="Border" Background="{StaticResource DarkBg}" BorderThickness="0">
                             <Grid>
                                 <ContentPresenter ContentSource="Header" Margin="10,5,15,5" RecognizesAccessKey="True" />
                                 <Popup x:Name="Popup" Placement="Bottom" IsOpen="{TemplateBinding IsSubmenuOpen}" AllowsTransparency="True" Focusable="False">
@@ -127,22 +199,19 @@
             <Setter Property="Height" Value="1"/>
             <Setter Property="Margin" Value="0,2,0,2"/>
         </Style>
+
     </Window.Resources>
 
-    <!-- DockPanel для привязки Меню наверх, а Статуса вниз -->
     <DockPanel>
-        <!-- Верхнее меню -->
         <Menu DockPanel.Dock="Top" Padding="2">
             <MenuItem Header="Файл">
                 <MenuItem Header="Открыть сцену"/>
                 <MenuItem Header="Сохранить сцену"/>
-                <Separator/>
                 <MenuItem Header="Выход"/>
             </MenuItem>
         </Menu>
 
-        <!-- Нижняя строка состояния -->
-        <StatusBar DockPanel.Dock="Bottom" Background="#007ACC" Foreground="White" Height="25">
+        <StatusBar DockPanel.Dock="Bottom" Height="25">
             <StatusBarItem>
                 <TextBlock x:Name="StatusText" Text="Готов к работе"/>
             </StatusBarItem>
@@ -151,26 +220,25 @@
             </StatusBarItem>
         </StatusBar>
 
-        <!-- Центральная часть программы (Сетка на 3 колонки) -->
         <Grid>
             <Grid.ColumnDefinitions>
-                <!-- Левая панель (Иерархия) -->
+
                 <ColumnDefinition Width="220" />
-                <!-- Центральная панель (3D) -->
+
                 <ColumnDefinition />
-                <!-- Правая панель (Настройки) -->
+
                 <ColumnDefinition Width="250" />
             </Grid.ColumnDefinitions>
 
-            <!-- ================= ЛЕВАЯ ПАНЕЛЬ ================= -->
+            
             <Grid Grid.Column="0" Background="{StaticResource PanelBg}" Margin="0,0,2,0">
                 <Grid.RowDefinitions>
                     <RowDefinition Height="Auto"/>
-                    <!-- Заголовок -->
+
                     <RowDefinition Height="Auto"/>
-                    <!-- Кнопки -->
+
                     <RowDefinition Height="*"/>
-                    <!-- Список -->
+
                 </Grid.RowDefinitions>
 
                 <TextBlock Grid.Row="0" Text="Иерархия сцены" FontWeight="Bold" FontSize="14" Margin="10,10,10,5" HorizontalAlignment="Center"/>
@@ -181,7 +249,6 @@
                 </UniformGrid>
 
                 <ListBox x:Name="SceneObjectsList" Grid.Row="2" Margin="10,5,10,10">
-                    <!-- Заглушки для примера, потом будем добавлять из кода -->
                     <ListBoxItem Content="Камера"/>
                     <ListBoxItem Content="Солнце (Directional)"/>
                     <ListBoxItem Content="Сфера 1"/>
@@ -189,17 +256,14 @@
                 </ListBox>
             </Grid>
 
-            <!-- ================= ЦЕНТРАЛЬНАЯ ПАНЕЛЬ (3D Viewport) ================= -->
             <Border Grid.Column="1" BorderBrush="{StaticResource BorderColor}" BorderThickness="1">
                 <glWpfControl:GLWpfControl x:Name="OpenGlControl" Render="OpenGlControl_Render" />
             </Border>
 
-            <!-- ================= ПРАВАЯ ПАНЕЛЬ (Вкладки) ================= -->
-            <Grid Grid.Column="2" Background="{StaticResource PanelBg}" Margin="2,0,0,0">
+            <Grid Grid.Column="2" Background="{StaticResource DarkBg}" Margin="2,0,0,0">
                 <TabControl>
 
-                    <!-- Вкладка 1: Свойства объекта -->
-                    <TabItem Header="Свойства">
+                    <TabItem Header="Свойства" >
                         <StackPanel Margin="10">
                             <TextBlock Text="Настройки объекта" FontWeight="Bold" FontSize="14" HorizontalAlignment="Center" Margin="0,5,0,15"/>
 
@@ -221,7 +285,6 @@
                         </StackPanel>
                     </TabItem>
 
-                    <!-- Вкладка 2: Рендеринг -->
                     <TabItem Header="Рендеринг">
                         <StackPanel Margin="10">
                             <TextBlock Text="Настройки рендеринга" FontWeight="Bold" FontSize="14" HorizontalAlignment="Center" Margin="0,5,0,15"/>
@@ -239,8 +302,8 @@
                             <Button x:Name="BtnRender" Content="Запустить рендер" FontWeight="Bold" FontSize="14" Padding="10" Background="#007ACC" BorderThickness="0"/>
 
                             <TextBlock Text="Предпросмотр световой карты" Margin="0,20,0,5" HorizontalAlignment="Center"/>
-                            <Border BorderBrush="{StaticResource BorderColor}" BorderThickness="1" Width="256" Height="256" Background="#1E1E1E">
-                                <!-- Сюда мы будем выводить отрендеренную картинку -->
+                            <Border BorderBrush="{StaticResource BorderColor}" BorderThickness="1" Width="220" Height="220" Background="{StaticResource DarkBg}">
+
                                 <Image x:Name="LightmapPreviewImage" Stretch="Uniform"/>
                             </Border>
                         </StackPanel>

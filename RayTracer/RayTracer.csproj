@@ -13,9 +13,4 @@
     <PackageReference Include="OpenTK.GLWpfControl" Version="4.3.6" />
   </ItemGroup>
 
-  <ItemGroup>
-    <Folder Include="Models\" />
-    <Folder Include="Controllers\" />
-  </ItemGroup>
-
 </Project>
