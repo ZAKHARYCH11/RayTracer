@@ -5,8 +5,18 @@
     /// </summary>
     public class Scene
     {
+        private Camera _mainCamera;
         private List<SceneObject> _objects;
         private List<Light> _lights;
+
+        /// <summary>
+        /// Камера
+        /// </summary>
+        public Camera MainCamera
+        {
+            get { return _mainCamera; }
+            set { _mainCamera = value; }
+        }
 
         /// <summary>
         /// Список всех геометрических объектов

@@ -28,7 +28,7 @@ namespace RayTracer.Models
             set { _radius = value; }
         }
 
-        public Sphere(Vector3 center, float radius, Material material) : base(material)
+        public Sphere(string name, Vector3 center, float radius, Material material) : base(name, material)
         {
             _center = center;
             _radius = radius;
@@ -74,6 +74,11 @@ namespace RayTracer.Models
             hit.Object = this;
 
             return true;
+        }
+
+        public override SceneObject Clone()
+        {
+            return new Sphere(Name, Center, _radius, Material.Clone());
         }
     }
 }

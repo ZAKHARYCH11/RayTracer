@@ -33,5 +33,14 @@ namespace RayTracer.Models
             _color = color;
             _reflectivity = reflectivity;
         }
+
+        /// <summary>
+        /// Клонирование материала
+        /// </summary>
+        /// <returns>Материал с те ме же свойствами</returns>
+        public Material Clone()
+        {
+            return new Material(_color, _reflectivity);
+        }
     }
 }

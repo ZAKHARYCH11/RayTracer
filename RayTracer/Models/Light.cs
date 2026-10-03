@@ -9,6 +9,7 @@ namespace RayTracer.Models
     {
         private Vector3 _color;
         private float _intensity;
+        private string _name;
 
         /// <summary>
         /// Цвет света
@@ -28,8 +29,18 @@ namespace RayTracer.Models
             set { _intensity = value; }
         }
 
-        protected Light(Vector3 color, float intensity)
+        /// <summary>
+        /// Имя источника света
+        /// </summary>
+        public string Name
         {
+            get { return _name; }
+            set { _name = value; }
+        }
+
+        protected Light(string name, Vector3 color, float intensity)
+        {
+            _name = name;
             _color = color;
             _intensity = intensity;
         }
@@ -43,5 +54,11 @@ namespace RayTracer.Models
         /// Получить дистанцию до источника света 
         /// </summary>
         public abstract float GetDistanceToLight(Vector3 point);
+
+        /// <summary>
+        /// Клонирование источника света
+        /// </summary>
+        /// <returns>Копия источника света</returns>
+        public abstract Light Clone();
     }
 }

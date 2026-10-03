@@ -18,8 +18,8 @@ namespace RayTracer.Models
             set { _direction = value.Normalized(); }
         }
 
-        public DirectionalLight(Vector3 color, float intensity, Vector3 direction)
-            : base(color, intensity)
+        public DirectionalLight(string name, Vector3 color, float intensity, Vector3 direction)
+            : base(name, color, intensity)
         {
             _direction = direction.Normalized();
         }
@@ -32,6 +32,11 @@ namespace RayTracer.Models
         public override float GetDistanceToLight(Vector3 point)
         {
             return float.MaxValue;
+        }
+
+        public override Light Clone()
+        {
+            return new DirectionalLight(Name, Color, Intensity, _direction);
         }
     }
 }
