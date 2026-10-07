@@ -1,4 +1,6 @@
-﻿namespace RayTracer.Models
+﻿using OpenTK.Mathematics;
+
+namespace RayTracer.Models
 {
     /// <summary>
     /// Абстрактный базовый класс для всех геометрических объектов на сцене
@@ -7,6 +9,7 @@
     {
         private Material _material;
         private string _name;
+        private Vector3 _center;
 
         /// <summary>
         /// Материал объекта
@@ -26,10 +29,20 @@
             set { _name = value; }
         }
 
-        protected SceneObject(string name, Material material)
+        /// <summary>
+        /// Центр объекта
+        /// </summary>
+        public Vector3 Center
+        {
+            get { return _center; }
+            set { _center = value; }
+        }
+
+        protected SceneObject(string name, Material material, Vector3 center)
         {
             _name = name;
             _material = material;
+            _center = center;
         }
 
         /// <summary>

@@ -60,5 +60,10 @@ namespace RayTracer.Models
         /// </summary>
         /// <returns>Копия источника света</returns>
         public abstract Light Clone();
+
+        public override string ToString()
+        {
+            return _name;
+        }
     }
 }

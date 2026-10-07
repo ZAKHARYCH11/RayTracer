@@ -7,17 +7,7 @@ namespace RayTracer.Models
     /// </summary>
     public class Sphere : SceneObject
     {
-        private Vector3 _center;
         private float _radius;
-
-        /// <summary>
-        /// Центр сферы в 3D пространстве
-        /// </summary>
-        public Vector3 Center
-        {
-            get { return _center; }
-            set { _center = value; }
-        }
 
         /// <summary>
         /// Радиус сферы
@@ -28,9 +18,8 @@ namespace RayTracer.Models
             set { _radius = value; }
         }
 
-        public Sphere(string name, Vector3 center, float radius, Material material) : base(name, material)
+        public Sphere(string name, Vector3 center, float radius, Material material) : base(name, material, center)
         {
-            _center = center;
             _radius = radius;
         }
 
@@ -44,7 +33,7 @@ namespace RayTracer.Models
         {
             hit = default;
 
-            Vector3 oc = ray.Origin - _center;
+            Vector3 oc = ray.Origin - Center;
 
             float b = 2.0f * Vector3.Dot(oc, ray.Direction);
             float c = Vector3.Dot(oc, oc) - _radius * _radius;
@@ -70,7 +59,7 @@ namespace RayTracer.Models
 
             hit.Distance = t;
             hit.Point = ray.GetPoint(t);
-            hit.Normal = (hit.Point - _center).Normalized();
+            hit.Normal = (hit.Point - Center).Normalized();
             hit.Object = this;
 
             return true;
