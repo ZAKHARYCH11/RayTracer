@@ -78,6 +78,10 @@ namespace RayTracer.Views
                 {
                     DrawWireframeCube(cube.Center, cube.Side, cube.Material.Color);
                 }
+                else if (obj is Cylinder cyl)
+                {
+                    DrawWireframeCylinder(cyl.Center, cyl.Radius, cyl.Height, cyl.Material.Color);
+                }
             }
 
         }
@@ -170,6 +174,45 @@ namespace RayTracer.Views
             GL.PopMatrix();
         }
 
+        /// <summary>
+        /// Вспомогательный метод для отрисовки каркаса цилиндра
+        /// </summary>
+        private void DrawWireframeCylinder(Vector3 center, float radius, float height, Vector3 color)
+        {
+            GL.Color3(color.X, color.Y, color.Z);
+            float halfHeight = height / 2.0f;
+            int segments = 16;
+
+            GL.PushMatrix();
+            GL.Translate(center.X, center.Y, center.Z);
+
+            for(int k = 0; k < 2; k++)
+            {
+                GL.Begin(PrimitiveType.LineLoop);
+                for (int i = 0; i < segments; i++)
+                {
+                    float theta = 2.0f * (float)Math.PI * i / segments;
+                    GL.Vertex3(radius * Math.Cos(theta), -halfHeight + height * k, radius * Math.Sin(theta));
+                }
+                GL.End();
+            }
+
+            int verticalLines = segments / 2;
+            GL.Begin(PrimitiveType.Lines);
+            for (int i = 0; i < verticalLines; i++)
+            {
+                float theta = 2.0f * (float)Math.PI * i / verticalLines;
+                float x = (float)(radius * Math.Cos(theta));
+                float z = (float)(radius * Math.Sin(theta));
+
+                GL.Vertex3(x, halfHeight, z);
+                GL.Vertex3(x, -halfHeight, z);
+            }
+            GL.End();
+
+            GL.PopMatrix();
+        }
+
         private void BtnAddObject_Click(object sender, RoutedEventArgs e)
         {
             BtnAddObject.ContextMenu.IsOpen = true;
@@ -177,6 +220,7 @@ namespace RayTracer.Views
 
         private void MenuAddSphere_Click(object sender, RoutedEventArgs e) => Controller?.AddSphere();
         private void MenuAddCube_Click(object sender, RoutedEventArgs e) => Controller?.AddCube();
+        private void MenuAddCylinder_Click(object sender, RoutedEventArgs e) => Controller?.AddCylinder();
         private void MenuAddDirLight_Click(object sender, RoutedEventArgs e) => Controller?.AddDirectionalLight();
         private void MenuClone_Click(object sender, RoutedEventArgs e) => Controller?.CloneSelected();
         private void MenuDelete_Click(object sender, RoutedEventArgs e) => Controller?.DeleteSelected();

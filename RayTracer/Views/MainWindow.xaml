@@ -12,195 +12,6 @@
         FontFamily="Segoe UI"
         Background="#252526">
 
-    <Window.Resources>
-        <SolidColorBrush x:Key="PanelBg" Color="#2D2D30"/>
-        <SolidColorBrush x:Key="ElementBg" Color="#3E3E42"/>
-        <SolidColorBrush x:Key="SelectedBg" Color="#505050"/>
-        <SolidColorBrush x:Key="Pressed" Color="#434343"/>
-        <SolidColorBrush x:Key="TextColor" Color="#F1F1F1"/>
-        <SolidColorBrush x:Key="BorderColor" Color="#3F3F46"/>
-        <SolidColorBrush x:Key="DarkBg" Color="#1E1E1E" />
-
-        <Style TargetType="TextBlock">
-            <Setter Property="Foreground" Value="{StaticResource TextColor}"/>
-        </Style>
-        <Style TargetType="Label">
-            <Setter Property="Foreground" Value="{StaticResource TextColor}"/>
-        </Style>
-
-        <Style TargetType="Button">
-            <Setter Property="Background" Value="{StaticResource ElementBg}"/>
-            <Setter Property="Foreground" Value="{StaticResource TextColor}"/>
-            <Setter Property="BorderBrush" Value="{StaticResource BorderColor}"/>
-            <Setter Property="Padding" Value="5"/>
-            <Setter Property="Margin" Value="2"/>
-            <Setter Property="Template">
-                <Setter.Value>
-                    <ControlTemplate TargetType="Button">
-                        <Border x:Name="Border" Background="{TemplateBinding Background}"
-                                BorderBrush="{TemplateBinding BorderBrush}"
-                                Padding="{TemplateBinding Padding}">
-                            <ContentPresenter x:Name="ContentSite"
-                                VerticalAlignment="Center"
-                                HorizontalAlignment="Center"
-                                Margin="{TemplateBinding Padding}"/>
-                        </Border>
-                        <ControlTemplate.Triggers>
-                            <Trigger Property="IsMouseOver" SourceName="Border" Value="True">
-                                <Setter TargetName="Border" Property="Background" Value="{StaticResource SelectedBg}"/>
-                            </Trigger>
-
-                            <Trigger Property="IsPressed" Value="True">
-                                <Setter TargetName="Border" Property="Background" Value="{StaticResource Pressed}"/>
-                            </Trigger>
-                        </ControlTemplate.Triggers>
-                    </ControlTemplate>
-                </Setter.Value>
-            </Setter>
-        </Style>
-
-        <Style TargetType="TextBox">
-            <Setter Property="Background" Value="{StaticResource DarkBg}"/>
-            <Setter Property="Foreground" Value="{StaticResource TextColor}"/>
-            <Setter Property="BorderBrush" Value="{StaticResource BorderColor}"/>
-            <Setter Property="BorderThickness" Value="1"/>
-            <Setter Property="Padding" Value="2"/>
-            <Setter Property="Template">
-                <Setter.Value>
-                    <ControlTemplate TargetType="TextBox">
-                        <Border x:Name="Border" Background="{TemplateBinding Background}"
-                                BorderBrush="{TemplateBinding BorderBrush}"
-                                BorderThickness="{TemplateBinding BorderThickness}"
-                                Padding="{TemplateBinding Padding}">
-                            <ScrollViewer x:Name="PART_ContentHost" Margin="0"/>
-                        </Border>
-                        <ControlTemplate.Triggers>
-                            <Trigger Property="IsMouseOver" Value="True">
-                                <Setter TargetName="Border" Property="BorderBrush" Value="{StaticResource SelectedBg}"/>
-                            </Trigger>
-
-                            <Trigger Property="IsKeyboardFocused" Value="True">
-                                <Setter TargetName="Border" Property="BorderBrush" Value="#007ACC"/>
-                            </Trigger>
-                        </ControlTemplate.Triggers>
-                    </ControlTemplate>
-                </Setter.Value>
-            </Setter>
-        </Style>
-
-        <Style TargetType="ListBox">
-            <Setter Property="Background" Value="{StaticResource DarkBg}"/>
-            <Setter Property="Foreground" Value="{StaticResource TextColor}"/>
-            <Setter Property="BorderBrush" Value="{StaticResource BorderColor}"/>
-        </Style>
-
-        <Style TargetType="ListBoxItem">
-            <Setter Property="Padding" Value="5,2"/>
-            <Setter Property="Foreground" Value="{StaticResource TextColor}"/>
-            <Setter Property="Template">
-                <Setter.Value>
-                    <ControlTemplate TargetType="ListBoxItem">
-                        <Border x:Name="Border" Background="Transparent" Padding="{TemplateBinding Padding}">
-                            <ContentPresenter VerticalAlignment="Center" />
-                        </Border>
-                        <ControlTemplate.Triggers>
-                            <Trigger Property="IsMouseOver" Value="True">
-                                <Setter TargetName="Border" Property="Background" Value="{StaticResource ElementBg}"/>
-                            </Trigger>
-                            <Trigger Property="IsSelected" Value="True">
-                                <Setter TargetName="Border" Property="Background" Value="{StaticResource SelectedBg}"/>
-                                <Setter Property="Foreground" Value="{StaticResource TextColor}"/>
-                            </Trigger>
-                        </ControlTemplate.Triggers>
-                    </ControlTemplate>
-                </Setter.Value>
-            </Setter>
-        </Style>
-
-        <Style TargetType="StatusBar">
-            <Setter Property="Background" Value="{StaticResource DarkBg}"/>
-            <Setter Property="Foreground" Value="{StaticResource TextColor}"/>
-        </Style>
-
-        <Style TargetType="TabControl">
-            <Setter Property="Background" Value="{StaticResource PanelBg}"/>
-            <Setter Property="Foreground" Value="{StaticResource TextColor}"/>
-            <Setter Property="BorderThickness" Value="0"/>
-        </Style>
-
-        <Style TargetType="TabItem">
-            <Setter Property="Background" Value="{StaticResource DarkBg}"/>
-            <Setter Property="Foreground" Value="{StaticResource TextColor}"/>
-            <Setter Property="Padding" Value="15,5"/>
-            <Setter Property="BorderThickness" Value="0"/>
-            <Setter Property="Template">
-                <Setter.Value>
-                    <ControlTemplate TargetType="TabItem">
-                        <Border x:Name="HeaderBorder"
-                                Background="{TemplateBinding Background}"
-                                Margin="0,0,0,0"
-                                CornerRadius="4,4,0,0">
-                            <ContentPresenter x:Name="ContentSite"
-                                              VerticalAlignment="Center"
-                                              HorizontalAlignment="Center"
-                                              ContentSource="Header" 
-                                              Margin="{TemplateBinding Padding}"/>
-                        </Border>
-                        <ControlTemplate.Triggers>
-                            <Trigger Property="IsMouseOver" SourceName="HeaderBorder" Value="True">
-                                <Setter TargetName="HeaderBorder" Property="Background" Value="{StaticResource ElementBg}"/>
-                            </Trigger>
-
-                            <Trigger Property="IsSelected" Value="True">
-                                <Setter TargetName="HeaderBorder" Property="Background" Value="{StaticResource PanelBg}"/>
-                                <Setter Property="Foreground" Value="White"/>
-                            </Trigger>
-                        </ControlTemplate.Triggers>
-                    </ControlTemplate>
-                </Setter.Value>
-            </Setter>
-        </Style>
-
-        <Style TargetType="Menu">
-            <Setter Property="Background" Value="{StaticResource DarkBg}" />
-            <Setter Property="Foreground" Value="{StaticResource TextColor}" />
-        </Style>
-
-        <Style TargetType="MenuItem">
-            <Setter Property="Foreground" Value="{StaticResource TextColor}"/>
-            <Setter Property="Template">
-                <Setter.Value>
-                    <ControlTemplate TargetType="MenuItem">
-                        <Border x:Name="Border" Background="{StaticResource DarkBg}" BorderThickness="0">
-                            <Grid>
-                                <ContentPresenter ContentSource="Header" Margin="10,5,15,5" RecognizesAccessKey="True" />
-                                <Popup x:Name="Popup" Placement="Bottom" IsOpen="{TemplateBinding IsSubmenuOpen}" AllowsTransparency="True" Focusable="False">
-                                    <Border Background="{StaticResource PanelBg}" BorderBrush="{StaticResource BorderColor}" BorderThickness="1" Margin="0,0,5,5">
-                                        <StackPanel IsItemsHost="True" KeyboardNavigation.DirectionalNavigation="Cycle"/>
-                                    </Border>
-                                </Popup>
-                            </Grid>
-                        </Border>
-                        <ControlTemplate.Triggers>
-                            <Trigger Property="IsHighlighted" Value="True">
-                                <Setter TargetName="Border" Property="Background" Value="{StaticResource ElementBg}"/>
-                            </Trigger>
-                            <Trigger Property="Role" Value="SubmenuItem">
-                                <Setter TargetName="Popup" Property="Placement" Value="Right"/>
-                            </Trigger>
-                        </ControlTemplate.Triggers>
-                    </ControlTemplate>
-                </Setter.Value>
-            </Setter>
-        </Style>
-
-        <Style TargetType="ContextMenu">
-            <Setter Property="Background" Value="{StaticResource DarkBg}" />
-            <Setter Property="Foreground" Value="{StaticResource TextColor}" />
-        </Style>
-
-    </Window.Resources>
-
     <DockPanel>
         <Menu DockPanel.Dock="Top" Padding="2">
             <MenuItem Header="Файл">
@@ -247,7 +58,8 @@
                         <Button.ContextMenu>
                             <ContextMenu x:Name="MenuAdd">
                                 <MenuItem Header="Сфера" Click="MenuAddSphere_Click"/>
-                                <MenuItem Header="Добавить Куб" Click="MenuAddCube_Click"/>
+                                <MenuItem Header="Куб" Click="MenuAddCube_Click"/>
+                                <MenuItem Header="Цилиндр" Click="MenuAddCylinder_Click"/>
                                 <MenuItem Header="Направленный свет" Click="MenuAddDirLight_Click"/>
                             </ContextMenu>
                         </Button.ContextMenu>
@@ -263,6 +75,7 @@
                         <ContextMenu>
                             <MenuItem Header="Добавить Сферу" Click="MenuAddSphere_Click"/>
                             <MenuItem Header="Добавить Куб" Click="MenuAddCube_Click"/>
+                            <MenuItem Header="Добавить Цилиндр" Click="MenuAddCylinder_Click"/>
                             <MenuItem Header="Добавить Направленный свет" Click="MenuAddDirLight_Click"/>
                         </ContextMenu>
                     </ListBox.ContextMenu>
@@ -307,11 +120,14 @@
                                 <TextBox x:Name="PosZ" Text="0.0" Margin="2,0,0,0" TextChanged="Properties_Changed"/>
                             </UniformGrid>
 
-                            <TextBlock x:Name="TxtSphereRadius" Text="Радиус"/>
+                            <TextBlock x:Name="TxtRadius" Text="Радиус"/>
                             <TextBox x:Name="Radius" Text="1.0" Margin="0,0,2,0" TextChanged="Properties_Changed"/>
 
                             <TextBlock x:Name="TxtCubeSide" Text="Сторона"/>
                             <TextBox x:Name="Side" Text="1.0" Margin="0,0,2,0" TextChanged="Properties_Changed"/>
+
+                            <TextBlock x:Name="TxtCylinderHeight" Text="Высота"/>
+                            <TextBox x:Name="Height" Text="1.0" Margin="0,0,2,0" TextChanged="Properties_Changed"/>
 
                             <TextBlock Text="Цвет материала"/>
                             <Button x:Name="BtnSelectColor" Content="Выбрать цвет" Margin="0,5,0,15" Background="#880000" Click="BtnSelectColor_Click"/>
@@ -323,7 +139,7 @@
 
                             <Slider x:Name="SliderReflectivity" Minimum="0" Maximum="1" Value="0.5" Margin="0,0,0,15" ValueChanged="Properties_Changed"/>
 
-                            <TextBlock Text="Интенсивность света (если источник)"/>
+                            <TextBlock x:Name="TxtLightIntensity" Text="Интенсивность света"/>
                             <Slider x:Name="SliderLightIntensity" Minimum="0" Maximum="5" Value="1" Margin="0,5,0,15" ValueChanged="Properties_Changed"/>
                         </StackPanel>
                     </TabItem>

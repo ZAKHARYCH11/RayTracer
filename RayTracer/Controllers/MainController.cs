@@ -81,6 +81,13 @@ namespace RayTracer.Controllers
             UpdateHierarchyView();
         }
 
+        public void AddCylinder()
+        {
+            string name = GetUniqueName("Новый цилиндр", isLight: false);
+            _scene.Objects.Add(new Cylinder(name, new Vector3(0, 0, -2), 0.5f, 1.0f, new Material(new Vector3(0.3f, 0.8f, 0.3f))));
+            UpdateHierarchyView();
+        }
+
         public void AddDirectionalLight()
         {
             string name = GetUniqueName("Новый свет", isLight: true);
@@ -235,17 +242,37 @@ namespace RayTracer.Controllers
                 {
                     _view.TxtCubeSide.Visibility = Visibility.Collapsed;
                     _view.Side.Visibility = Visibility.Collapsed;
-                    _view.TxtSphereRadius.Visibility = Visibility.Visible;
+                    _view.TxtCylinderHeight.Visibility = Visibility.Collapsed;
+                    _view.Height.Visibility = Visibility.Collapsed;
+
+                    _view.TxtRadius.Visibility = Visibility.Visible;
                     _view.Radius.Visibility = Visibility.Visible; 
+
                     _view.Radius.Text = sphere.Radius.ToString("0.00", culture);
                 }
                 else if(obj is Cube cube)
                 {
-                    _view.TxtSphereRadius.Visibility = Visibility.Collapsed;
+                    _view.TxtRadius.Visibility = Visibility.Collapsed;
                     _view.Radius.Visibility = Visibility.Collapsed;
+                    _view.TxtCylinderHeight.Visibility = Visibility.Collapsed;
+                    _view.Height.Visibility = Visibility.Collapsed;
+
                     _view.TxtCubeSide.Visibility = Visibility.Visible;
                     _view.Side.Visibility = Visibility.Visible;
+
                     _view.Side.Text = cube.Side.ToString("0.00", culture);
+                }else if(obj is Cylinder cylinder)
+                {
+                    _view.TxtCubeSide.Visibility = Visibility.Collapsed;
+                    _view.Side.Visibility = Visibility.Collapsed;
+
+                    _view.TxtCylinderHeight.Visibility = Visibility.Visible;
+                    _view.Height.Visibility = Visibility.Visible;
+                    _view.TxtRadius.Visibility= Visibility.Visible;
+                    _view.Radius.Visibility= Visibility.Visible;
+
+                    _view.Radius.Text = cylinder.Radius.ToString("0.00", culture);
+                    _view.Height.Text = cylinder.Height.ToString("0.00", culture);
                 }
 
                 _view.PosX.Text = obj.Center.X.ToString("0.00", culture);
@@ -254,7 +281,9 @@ namespace RayTracer.Controllers
 
                 _view.SliderReflectivity.IsEnabled = true;
                 _view.SliderReflectivity.Value = obj.Material.Reflectivity;
-                _view.SliderLightIntensity.IsEnabled = false;
+
+                _view.TxtLightIntensity.Visibility = Visibility.Collapsed;
+                _view.SliderLightIntensity.Visibility = Visibility.Collapsed;
 
                 _view.Reflectivity.Text = obj.Material.Reflectivity.ToString("0.00", culture);
 
@@ -267,8 +296,10 @@ namespace RayTracer.Controllers
                 _view.PosY.Text = light.Direction.Y.ToString("0.00", culture);
                 _view.PosZ.Text = light.Direction.Z.ToString("0.00", culture);
 
-                _view.SliderReflectivity.IsEnabled = false;
-                _view.SliderLightIntensity.IsEnabled = true;
+                _view.SliderReflectivity.Visibility = Visibility.Collapsed;
+
+                _view.TxtLightIntensity.Visibility = Visibility.Visible;
+                _view.SliderLightIntensity.Visibility = Visibility.Visible;
                 _view.SliderLightIntensity.Value = light.Intensity;
 
                 _view.BtnSelectColor.IsEnabled = false;
@@ -298,6 +329,7 @@ namespace RayTracer.Controllers
 
             float.TryParse(_view.Radius.Text.Replace(',', '.'), style, culture,out float radius);
             float.TryParse(_view.Side.Text.Replace(',', '.'), style, culture, out float side);
+            float.TryParse(_view.Height.Text.Replace(',', '.'), style, culture, out float height);
 
             float.TryParse(_view.Reflectivity.Text.Replace(',', '.'), style, culture, out float reflectiviti);
             reflectiviti = Math.Clamp(reflectiviti, 0f, 1f);
@@ -316,6 +348,12 @@ namespace RayTracer.Controllers
 
                 if(obj is Cube cube)
                     cube.Side = side;
+
+                if(obj is Cylinder cyl)
+                {
+                    cyl.Radius = radius;
+                    cyl.Height = height;
+                }
 
                 if(reflectiviti != obj.Material.Reflectivity)
                 {
