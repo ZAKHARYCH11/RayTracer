@@ -60,7 +60,9 @@
                                 <MenuItem Header="Сфера" Click="MenuAddSphere_Click"/>
                                 <MenuItem Header="Куб" Click="MenuAddCube_Click"/>
                                 <MenuItem Header="Цилиндр" Click="MenuAddCylinder_Click"/>
-                                <MenuItem Header="Направленный свет" Click="MenuAddDirLight_Click"/>
+                                <MenuItem Header="Глобальный свет" Click="MenuAddGlobalLight_Click"/>
+                                <MenuItem Header="Направленный свет свет" Click="MenuAddSpotLight_Click"/>
+                                <MenuItem Header="Точечный свет" Click="MenuAddPointLight_Click"/>
                             </ContextMenu>
                         </Button.ContextMenu>
                     </Button>
@@ -76,7 +78,9 @@
                             <MenuItem Header="Добавить Сферу" Click="MenuAddSphere_Click"/>
                             <MenuItem Header="Добавить Куб" Click="MenuAddCube_Click"/>
                             <MenuItem Header="Добавить Цилиндр" Click="MenuAddCylinder_Click"/>
-                            <MenuItem Header="Добавить Направленный свет" Click="MenuAddDirLight_Click"/>
+                            <MenuItem Header="Добавить глобальный свет" Click="MenuAddGlobalLight_Click"/>
+                            <MenuItem Header="Добавить направленный свет свет" Click="MenuAddSpotLight_Click"/>
+                            <MenuItem Header="Добавить точечный свет" Click="MenuAddPointLight_Click"/>
                         </ContextMenu>
                     </ListBox.ContextMenu>
 
@@ -109,38 +113,80 @@
             <Grid Grid.Column="2" Background="{StaticResource DarkBg}" Margin="2,0,0,0" Focusable="True" MouseDown="ClearFocus_MouseDown">
                 <TabControl>
 
-                    <TabItem Header="Свойства" >
-                        <StackPanel Margin="10">
+                    <TabItem Header="Свойства">
+                        <!-- Главный контейнер (Скрыт по умолчанию, пока ничего не выбрано) -->
+                        <StackPanel x:Name="PropertiesContainer" Margin="10" Visibility="Hidden">
+
                             <TextBlock Text="Настройки объекта" FontWeight="Bold" FontSize="14" HorizontalAlignment="Center" Margin="0,5,0,15"/>
 
-                            <TextBlock Text="Координаты (X, Y, Z)"/>
-                            <UniformGrid Columns="3" Margin="0,5,0,15">
-                                <TextBox x:Name="PosX" Text="0.0" Margin="0,0,2,0" TextChanged="Properties_Changed"/>
-                                <TextBox x:Name="PosY" Text="0.0" Margin="2,0,2,0" TextChanged="Properties_Changed"/>
-                                <TextBox x:Name="PosZ" Text="0.0" Margin="2,0,0,0" TextChanged="Properties_Changed"/>
-                            </UniformGrid>
+                            <!-- ПАНЕЛЬ КООРДИНАТ -->
+                            <StackPanel x:Name="PanelCoordinates" Visibility="Collapsed" Margin="0,0,0,15">
+                                <TextBlock Text="Координаты (X, Y, Z)"/>
+                                <UniformGrid Columns="3" Margin="0,5,0,0">
+                                    <TextBox x:Name="PosX" Text="0.0" Margin="0,0,2,0" TextChanged="Properties_Changed"/>
+                                    <TextBox x:Name="PosY" Text="0.0" Margin="2,0,2,0" TextChanged="Properties_Changed"/>
+                                    <TextBox x:Name="PosZ" Text="0.0" Margin="2,0,0,0" TextChanged="Properties_Changed"/>
+                                </UniformGrid>
+                            </StackPanel>
 
-                            <TextBlock x:Name="TxtRadius" Text="Радиус"/>
-                            <TextBox x:Name="Radius" Text="1.0" Margin="0,0,2,0" TextChanged="Properties_Changed"/>
+                            <!-- ПАНЕЛЬ НАПРАВЛЕНИЯ -->
+                            <StackPanel x:Name="PanelDirection" Visibility="Collapsed" Margin="0,0,0,15">
+                                <TextBlock Text="Направление вектора (X, Y, Z)"/>
+                                <UniformGrid Columns="3" Margin="0,5,0,0">
+                                    <TextBox x:Name="DirX" Text="0.0" Margin="0,0,2,0" TextChanged="Properties_Changed"/>
+                                    <TextBox x:Name="DirY" Text="-1.0" Margin="2,0,2,0" TextChanged="Properties_Changed"/>
+                                    <TextBox x:Name="DirZ" Text="0.0" Margin="2,0,0,0" TextChanged="Properties_Changed"/>
+                                </UniformGrid>
+                            </StackPanel>
 
-                            <TextBlock x:Name="TxtCubeSide" Text="Сторона"/>
-                            <TextBox x:Name="Side" Text="1.0" Margin="0,0,2,0" TextChanged="Properties_Changed"/>
+                            <!-- ПАНЕЛЬ УГЛА КОНУСА -->
+                            <StackPanel x:Name="PanelSpotAngle" Visibility="Collapsed" Margin="0,0,0,15">
+                                <TextBlock Text="Угол конуса света (в градусах)"/>
+                                <TextBox x:Name="SpotAngle" Text="30" TextChanged="Properties_Changed"/>
+                            </StackPanel>
 
-                            <TextBlock x:Name="TxtCylinderHeight" Text="Высота"/>
-                            <TextBox x:Name="Height" Text="1.0" Margin="0,0,2,0" TextChanged="Properties_Changed"/>
+                            <!-- ПАНЕЛЬ СФЕРЫ -->
+                            <StackPanel x:Name="PanelSphere" Visibility="Collapsed" Margin="0,0,0,15">
+                                <TextBlock Text="Радиус сферы"/>
+                                <TextBox x:Name="Radius" Text="0.5" TextChanged="Properties_Changed"/>
+                            </StackPanel>
 
-                            <TextBlock Text="Цвет материала"/>
-                            <Button x:Name="BtnSelectColor" Content="Выбрать цвет" Margin="0,5,0,15" Background="#880000" Click="BtnSelectColor_Click"/>
+                            <!-- ПАНЕЛЬ КУБА -->
+                            <StackPanel x:Name="PanelCube" Visibility="Collapsed" Margin="0,0,0,15">
+                                <TextBlock Text="Сторона куба"/>
+                                <TextBox x:Name="Side" Text="1.0" TextChanged="Properties_Changed"/>
+                            </StackPanel>
 
-                            <UniformGrid Columns="2" Margin="0,5,0,15">
+                            <!-- ПАНЕЛЬ ЦИЛИНДРА -->
+                            <StackPanel x:Name="PanelCylinder" Visibility="Collapsed" Margin="0,0,0,15">
+                                <TextBlock Text="Радиус основания"/>
+                                <TextBox x:Name="CylRadius" Text="0.5" Margin="0,0,0,5" TextChanged="Properties_Changed"/>
+                                <TextBlock Text="Высота цилиндра"/>
+                                <TextBox x:Name="Height" Text="1.0" TextChanged="Properties_Changed"/>
+                            </StackPanel>
+
+                            <!-- ПАНЕЛЬ МАТЕРИАЛА (Цвет и Зеркальность) -->
+                            <StackPanel x:Name="PanelMaterial" Visibility="Collapsed">
+                                <TextBlock Text="Цвет материала"/>
+                                <Button x:Name="BtnSelectColor" Content="Выбрать цвет" Margin="0,5,0,15" Click="BtnSelectColor_Click"/>
+
                                 <TextBlock Text="Зеркальность:"/>
-                                <TextBox x:Name="Reflectivity" Margin="0,0,2,0" TextChanged="Properties_Changed"/>
-                            </UniformGrid>
+                                <Grid Margin="0,5,0,15">
+                                    <Grid.ColumnDefinitions>
+                                        <ColumnDefinition Width="*"/>
+                                        <ColumnDefinition Width="40"/>
+                                    </Grid.ColumnDefinitions>
+                                    <Slider x:Name="SliderReflectivity" Minimum="0" Maximum="1" Value="0.5" ValueChanged="Properties_Changed" Margin="0,0,10,0"/>
+                                    <TextBox x:Name="Reflectivity" Grid.Column="1" Text="0.5" TextChanged="Properties_Changed"/>
+                                </Grid>
+                            </StackPanel>
 
-                            <Slider x:Name="SliderReflectivity" Minimum="0" Maximum="1" Value="0.5" Margin="0,0,0,15" ValueChanged="Properties_Changed"/>
+                            <!-- ПАНЕЛЬ ИСТОЧНИКА СВЕТА -->
+                            <StackPanel x:Name="PanelLight" Visibility="Collapsed">
+                                <TextBlock Text="Интенсивность света"/>
+                                <Slider x:Name="SliderLightIntensity" Minimum="0" Maximum="5" Value="1" Margin="0,5,0,15" ValueChanged="Properties_Changed"/>
+                            </StackPanel>
 
-                            <TextBlock x:Name="TxtLightIntensity" Text="Интенсивность света"/>
-                            <Slider x:Name="SliderLightIntensity" Minimum="0" Maximum="5" Value="1" Margin="0,5,0,15" ValueChanged="Properties_Changed"/>
                         </StackPanel>
                     </TabItem>
 
@@ -155,8 +201,16 @@
                                 <TextBox x:Name="ResY" Text="256" Width="50" HorizontalContentAlignment="Center"/>
                             </StackPanel>
 
-                            <TextBlock Text="Глубина трассировки (отражения): 3"/>
-                            <Slider x:Name="SliderTraceDepth" Minimum="1" Maximum="10" Value="3" IsSnapToTickEnabled="True" TickFrequency="1" Margin="0,5,0,25"/>
+                            <TextBlock Text="Глубина трассировки:"/>
+                            <Grid Margin="0,5,0,15" Height="28">
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="*"/>
+                                    <ColumnDefinition Width="40"/>
+                                </Grid.ColumnDefinitions>
+                                <Slider x:Name="SliderTraceDepth" Minimum="1" Maximum="10" Value="3" IsSnapToTickEnabled="True" TickFrequency="1" Margin="0,5,0,0" ValueChanged="SliderTraceDepth_Changed"/>
+                                <TextBox x:Name="TraceDepth" Grid.Column="1" Text="3" TextChanged="TraceDepth_Changed"/>
+                            </Grid>
+                            
 
                             <Button x:Name="BtnRender" Content="Запустить рендер" FontWeight="Bold" FontSize="14" Padding="10" Background="#007ACC" BorderThickness="0"/>
 

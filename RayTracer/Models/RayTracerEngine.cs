@@ -69,19 +69,24 @@ namespace RayTracer.Models
                 // Цикл по всем источникам света на сцене
                 foreach (var light in scene.Lights)
                 {
-                    Vector3 lightDir = light.GetDirectionToLight(hit.Point);
+                    float currentIntensity = light.GetIntensityAt(hit.Point);
 
-                    // 2. Проверка теней (Shadow Ray)
-                    Vector3 shadowOrigin = hit.Point + hit.Normal * 0.001f;
-                    Ray shadowRay = new Ray(shadowOrigin, lightDir);
-
-                    // Проверяем, не перекрыт ли свет
-                    if (!scene.RayCast(shadowRay, out Intersection shadowHit) || shadowHit.Distance > light.GetDistanceToLight(hit.Point))
+                    if (currentIntensity > 0)
                     {
-                        // Освещение по Ламберту (Diffuse)
-                        float diff = Math.Max(Vector3.Dot(hit.Normal, lightDir), 0.0f);
-                        Vector3 diffuse = mat.Color * light.Color * light.Intensity * diff;
-                        finalColor += diffuse;
+                        Vector3 lightDir = light.GetDirectionToLight(hit.Point);
+
+                        // 2. Проверка теней (Shadow Ray)
+                        Vector3 shadowOrigin = hit.Point + hit.Normal * 0.001f;
+                        Ray shadowRay = new Ray(shadowOrigin, lightDir);
+
+                        // Проверяем, не перекрыт ли свет
+                        if (!scene.RayCast(shadowRay, out Intersection shadowHit) || shadowHit.Distance > light.GetDistanceToLight(hit.Point))
+                        {
+                            // Освещение по Ламберту (Diffuse)
+                            float diff = Math.Max(Vector3.Dot(hit.Normal, lightDir), 0.0f);
+                            Vector3 diffuse = mat.Color * light.Color * currentIntensity * diff;
+                            finalColor += diffuse;
+                        }
                     }
                 }
 

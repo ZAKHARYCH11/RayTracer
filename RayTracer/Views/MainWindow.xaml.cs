@@ -221,7 +221,9 @@ namespace RayTracer.Views
         private void MenuAddSphere_Click(object sender, RoutedEventArgs e) => Controller?.AddSphere();
         private void MenuAddCube_Click(object sender, RoutedEventArgs e) => Controller?.AddCube();
         private void MenuAddCylinder_Click(object sender, RoutedEventArgs e) => Controller?.AddCylinder();
-        private void MenuAddDirLight_Click(object sender, RoutedEventArgs e) => Controller?.AddDirectionalLight();
+        private void MenuAddGlobalLight_Click(object sender, RoutedEventArgs e) => Controller?.AddGlobalLight();
+        private void MenuAddSpotLight_Click(object sender, RoutedEventArgs e) => Controller?.AddSpotLight();
+        private void MenuAddPointLight_Click(object sender, RoutedEventArgs e) => Controller?.AddPointLight();
         private void MenuClone_Click(object sender, RoutedEventArgs e) => Controller?.CloneSelected();
         private void MenuDelete_Click(object sender, RoutedEventArgs e) => Controller?.DeleteSelected();
         private void MenuOpenScene_Click(object sender, RoutedEventArgs e) => Controller?.LoadScene();
@@ -264,6 +266,22 @@ namespace RayTracer.Views
             if (Controller != null)
             {
                 Controller.OnPropertiesChanged();
+            }
+        }
+
+        private void SliderTraceDepth_Changed(object sender, RoutedEventArgs e)
+        {
+            if(Controller != null)
+            {
+                Controller.OnSliderTraceDepthChanged();
+            }
+        }
+
+        private void TraceDepth_Changed(object sender, RoutedEventArgs e)
+        {
+            if (Controller != null)
+            {
+                Controller.OnTraceDepthChanged();
             }
         }
 

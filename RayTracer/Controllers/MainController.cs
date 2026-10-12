@@ -1,12 +1,13 @@
-﻿using System;
+﻿using OpenTK.Mathematics;
+using RayTracer.Models;
+using RayTracer.Views;
+using System;
 using System.Diagnostics;
+using System.Text.RegularExpressions;
 using System.Threading.Tasks;
 using System.Windows;
 using System.Windows.Media;
 using System.Windows.Media.Imaging;
-using OpenTK.Mathematics;
-using RayTracer.Models;
-using RayTracer.Views;
 
 namespace RayTracer.Controllers
 {
@@ -46,13 +47,13 @@ namespace RayTracer.Controllers
             var redMat = new Material(new Vector3(0.8f, 0.2f, 0.2f), 0.0f);
             _scene.Objects.Add(new Sphere("Красная сфера", new Vector3(0, 0, -1), 0.5f, redMat));
 
-            _scene.Lights.Add(new DirectionalLight("Солнце", new Vector3(1, 1, 1), 1.0f, new Vector3(-1, -1, -1)));
+            _scene.Lights.Add(new GlobalLight("Солнце", new Vector3(1, 1, 1), 1.0f, new Vector3(-1, -1, -1)));
 
             UpdateHierarchyView();
         }
 
         /// <summary>
-        /// Синхронизирует список объектов Модели (Scene) с интерфейсом (ListBox)
+        /// Синхронизирует список объектов Модели с интерфейсом
         /// </summary>
         public void UpdateHierarchyView()
         {
@@ -88,10 +89,22 @@ namespace RayTracer.Controllers
             UpdateHierarchyView();
         }
 
-        public void AddDirectionalLight()
+        public void AddGlobalLight()
         {
-            string name = GetUniqueName("Новый свет", isLight: true);
-            _scene.Lights.Add(new DirectionalLight(name, new Vector3(1, 1, 1), 1.0f, new Vector3(0, -1, 0)));
+            string name = GetUniqueName("Новый глобальный свет", isLight: true);
+            _scene.Lights.Add(new GlobalLight(name, new Vector3(1, 1, 1), 1.0f, new Vector3(0, -1, 0)));
+            UpdateHierarchyView();
+        }
+        public void AddSpotLight()
+        {
+            string name = GetUniqueName("Новый направленный свет", isLight: true);
+            _scene.Lights.Add(new SpotLight(name, new Vector3(1, 1, 1), 1.0f, new Vector3(1, 1, 1), new Vector3(0, -1, 0), 30f));
+            UpdateHierarchyView();
+        }
+        public void AddPointLight()
+        {
+            string name = GetUniqueName("Новый точечный свет", isLight: true);
+            _scene.Lights.Add(new PointLight(name, new Vector3(1, 1, 1), 1.0f, new Vector3(1, 1, 1)));
             UpdateHierarchyView();
         }
 
@@ -217,94 +230,89 @@ namespace RayTracer.Controllers
         /// <param name="selectedItem">Выделенный объект</param>
         public void OnObjectSelected(object selectedItem)
         {
-            if (selectedItem == null) return;
+            if (selectedItem == null)
+            {
+                _view.PropertiesContainer.Visibility = Visibility.Hidden;
+                return;
+            }
+
+            _view.PropertiesContainer.Visibility = Visibility.Visible;
+            HideAllDynamicPanels();
 
             _isUpdatingUI = true;
-
             var culture = System.Globalization.CultureInfo.InvariantCulture;
 
             if (selectedItem is Camera cam)
             {
+                _view.PanelCoordinates.Visibility = Visibility.Visible;
                 _view.PosX.Text = cam.Position.X.ToString("0.00", culture);
                 _view.PosY.Text = cam.Position.Y.ToString("0.00", culture);
                 _view.PosZ.Text = cam.Position.Z.ToString("0.00", culture);
-
-                _view.SliderReflectivity.IsEnabled = false;
-                _view.SliderLightIntensity.IsEnabled = false;
-
-                _view.BtnSelectColor.IsEnabled = false;
-                _view.BtnSelectColor.Background = new SolidColorBrush(System.Windows.Media.Color.FromRgb(50, 50, 50));
-                _view.BtnSelectColor.Content = "Не применимо";
             }
             else if (selectedItem is SceneObject obj)
             {
-                if(obj is Sphere sphere)
-                {
-                    _view.TxtCubeSide.Visibility = Visibility.Collapsed;
-                    _view.Side.Visibility = Visibility.Collapsed;
-                    _view.TxtCylinderHeight.Visibility = Visibility.Collapsed;
-                    _view.Height.Visibility = Visibility.Collapsed;
-
-                    _view.TxtRadius.Visibility = Visibility.Visible;
-                    _view.Radius.Visibility = Visibility.Visible; 
-
-                    _view.Radius.Text = sphere.Radius.ToString("0.00", culture);
-                }
-                else if(obj is Cube cube)
-                {
-                    _view.TxtRadius.Visibility = Visibility.Collapsed;
-                    _view.Radius.Visibility = Visibility.Collapsed;
-                    _view.TxtCylinderHeight.Visibility = Visibility.Collapsed;
-                    _view.Height.Visibility = Visibility.Collapsed;
-
-                    _view.TxtCubeSide.Visibility = Visibility.Visible;
-                    _view.Side.Visibility = Visibility.Visible;
-
-                    _view.Side.Text = cube.Side.ToString("0.00", culture);
-                }else if(obj is Cylinder cylinder)
-                {
-                    _view.TxtCubeSide.Visibility = Visibility.Collapsed;
-                    _view.Side.Visibility = Visibility.Collapsed;
-
-                    _view.TxtCylinderHeight.Visibility = Visibility.Visible;
-                    _view.Height.Visibility = Visibility.Visible;
-                    _view.TxtRadius.Visibility= Visibility.Visible;
-                    _view.Radius.Visibility= Visibility.Visible;
-
-                    _view.Radius.Text = cylinder.Radius.ToString("0.00", culture);
-                    _view.Height.Text = cylinder.Height.ToString("0.00", culture);
-                }
+                _view.PanelCoordinates.Visibility = Visibility.Visible;
 
                 _view.PosX.Text = obj.Center.X.ToString("0.00", culture);
                 _view.PosY.Text = obj.Center.Y.ToString("0.00", culture);
                 _view.PosZ.Text = obj.Center.Z.ToString("0.00", culture);
 
-                _view.SliderReflectivity.IsEnabled = true;
+                _view.PanelMaterial.Visibility = Visibility.Visible;
                 _view.SliderReflectivity.Value = obj.Material.Reflectivity;
-
-                _view.TxtLightIntensity.Visibility = Visibility.Collapsed;
-                _view.SliderLightIntensity.Visibility = Visibility.Collapsed;
-
                 _view.Reflectivity.Text = obj.Material.Reflectivity.ToString("0.00", culture);
-
-                _view.BtnSelectColor.IsEnabled = true;
                 UpdateColorButtonUI(obj.Material.Color);
+
+                if (obj is Sphere sphere)
+                {
+                    _view.PanelSphere.Visibility = Visibility.Visible;
+                    _view.Radius.Text = sphere.Radius.ToString("0.00", culture);
+                }
+                else if (obj is Cube cube)
+                {
+                    _view.PanelCube.Visibility = Visibility.Visible;
+                    _view.Side.Text = cube.Side.ToString("0.00", culture);
+                }
+                else if (obj is Cylinder cyl)
+                {
+                    _view.PanelCylinder.Visibility = Visibility.Visible;
+                    _view.CylRadius.Text = cyl.Radius.ToString("0.00", culture);
+                    _view.Height.Text = cyl.Height.ToString("0.00", culture);
+                }
             }
-            else if (selectedItem is DirectionalLight light)
+            else if (selectedItem is Light light)
             {
-                _view.PosX.Text = light.Direction.X.ToString("0.00", culture);
-                _view.PosY.Text = light.Direction.Y.ToString("0.00", culture);
-                _view.PosZ.Text = light.Direction.Z.ToString("0.00", culture);
-
-                _view.SliderReflectivity.Visibility = Visibility.Collapsed;
-
-                _view.TxtLightIntensity.Visibility = Visibility.Visible;
-                _view.SliderLightIntensity.Visibility = Visibility.Visible;
+                _view.PanelLight.Visibility = Visibility.Visible;
                 _view.SliderLightIntensity.Value = light.Intensity;
 
-                _view.BtnSelectColor.IsEnabled = false;
-                _view.BtnSelectColor.Background = new SolidColorBrush(System.Windows.Media.Color.FromRgb(50, 50, 50));
-                _view.BtnSelectColor.Content = "Не применимо";
+                if (light is GlobalLight gl)
+                {
+                    _view.PanelDirection.Visibility = Visibility.Visible;
+                    _view.DirX.Text = gl.Direction.X.ToString("0.00", culture);
+                    _view.DirY.Text = gl.Direction.Y.ToString("0.00", culture);
+                    _view.DirZ.Text = gl.Direction.Z.ToString("0.00", culture);
+                }
+                else if (light is PointLight pl)
+                {
+                    _view.PanelCoordinates.Visibility = Visibility.Visible;
+                    _view.PosX.Text = pl.Position.X.ToString("0.00", culture);
+                    _view.PosY.Text = pl.Position.Y.ToString("0.00", culture);
+                    _view.PosZ.Text = pl.Position.Z.ToString("0.00", culture);
+                }
+                else if (light is SpotLight sl)
+                {
+                    _view.PanelCoordinates.Visibility = Visibility.Visible;
+                    _view.PosX.Text = sl.Position.X.ToString("0.00", culture);
+                    _view.PosY.Text = sl.Position.Y.ToString("0.00", culture);
+                    _view.PosZ.Text = sl.Position.Z.ToString("0.00", culture);
+
+                    _view.PanelDirection.Visibility = Visibility.Visible;
+                    _view.DirX.Text = sl.Direction.X.ToString("0.00", culture);
+                    _view.DirY.Text = sl.Direction.Y.ToString("0.00", culture);
+                    _view.DirZ.Text = sl.Direction.Z.ToString("0.00", culture);
+
+                    _view.PanelSpotAngle.Visibility = Visibility.Visible;
+                    _view.SpotAngle.Text = sl.CutOffAngle.ToString("0.00", culture);
+                }
             }
 
             _isUpdatingUI = false;
@@ -327,8 +335,17 @@ namespace RayTracer.Controllers
             float.TryParse(_view.PosY.Text.Replace(',', '.'), style, culture, out float y);
             float.TryParse(_view.PosZ.Text.Replace(',', '.'), style, culture, out float z);
 
+            float.TryParse(_view.DirX.Text.Replace(',', '.'), style, culture, out float dx);
+            float.TryParse(_view.DirY.Text.Replace(',', '.'), style, culture, out float dy);
+            float.TryParse(_view.DirZ.Text.Replace(',', '.'), style, culture, out float dz);
+            Vector3 newDir = new Vector3(dx, dy, dz);
+            if (newDir.Length == 0) newDir = new Vector3(0, -1, 0);
+
+            float.TryParse(_view.SpotAngle.Text.Replace(',', '.'), style, culture, out float angle);
+
             float.TryParse(_view.Radius.Text.Replace(',', '.'), style, culture,out float radius);
             float.TryParse(_view.Side.Text.Replace(',', '.'), style, culture, out float side);
+            float.TryParse(_view.CylRadius.Text.Replace(',', '.'), style, culture, out float cylRadius);
             float.TryParse(_view.Height.Text.Replace(',', '.'), style, culture, out float height);
 
             float.TryParse(_view.Reflectivity.Text.Replace(',', '.'), style, culture, out float reflectiviti);
@@ -351,7 +368,7 @@ namespace RayTracer.Controllers
 
                 if(obj is Cylinder cyl)
                 {
-                    cyl.Radius = radius;
+                    cyl.Radius = cylRadius;
                     cyl.Height = height;
                 }
 
@@ -367,13 +384,45 @@ namespace RayTracer.Controllers
                 }
                 
             }
-            else if (selectedItem is DirectionalLight light)
+            else if (selectedItem is Light light)
             {
-                if (newVector.Length == 0) newVector = new Vector3(0, -1, 0);
-
-                light.Direction = newVector;
                 light.Intensity = (float)_view.SliderLightIntensity.Value;
+
+                if (light is GlobalLight gl)
+                {
+                    gl.Direction = newDir;
+                }
+                else if (light is PointLight pl)
+                {
+                    pl.Position = newVector;
+                }
+                else if (light is SpotLight sl)
+                {
+                    sl.Position = newVector;
+                    sl.Direction = newDir;
+                    sl.CutOffAngle = Math.Clamp(angle, 1f, 180f);
+                }
             }
+        }
+
+        /// <summary>
+        /// Обработка изменения глубины трассировки через текстовое поле
+        /// </summary>
+        public void OnTraceDepthChanged()
+        {
+            var style = System.Globalization.NumberStyles.Any;
+            var culture = System.Globalization.CultureInfo.InvariantCulture;
+            float.TryParse(_view.TraceDepth.Text.Replace(',', '.'), style, culture, out float traceDepth);
+            _view.SliderTraceDepth.Value = traceDepth;
+        }
+
+        /// <summary>
+        /// Обработка изменения глубины трассировки через слайдер
+        /// </summary>
+        public void OnSliderTraceDepthChanged()
+        {
+            float traceDepth = (float)_view.SliderTraceDepth.Value;
+            _view.TraceDepth.Text = traceDepth.ToString();
         }
 
         /// <summary>
@@ -487,6 +536,22 @@ namespace RayTracer.Controllers
             _view.BtnSelectColor.Content = $"Выбрать цвет (R:{r} G:{g} B:{b})";
 
             _view.BtnSelectColor.Background = new SolidColorBrush(System.Windows.Media.Color.FromRgb(r, g, b));
+        }
+
+        /// <summary>
+        /// Скрывает все специфичные панели свойств
+        /// </summary>
+        private void HideAllDynamicPanels()
+        {
+            _view.PanelCoordinates.Visibility = Visibility.Collapsed;
+            _view.PanelDirection.Visibility = Visibility.Collapsed;
+            _view.PanelSpotAngle.Visibility = Visibility.Collapsed;
+
+            _view.PanelSphere.Visibility = Visibility.Collapsed;
+            _view.PanelCube.Visibility = Visibility.Collapsed;
+            _view.PanelCylinder.Visibility = Visibility.Collapsed;
+            _view.PanelMaterial.Visibility = Visibility.Collapsed;
+            _view.PanelLight.Visibility = Visibility.Collapsed;
         }
     }
 }

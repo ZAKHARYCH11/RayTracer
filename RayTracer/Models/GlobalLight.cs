@@ -3,9 +3,9 @@
 namespace RayTracer.Models
 {
     /// <summary>
-    /// Направленный источник света
+    /// Глобальный свет (солнце)
     /// </summary>
-    public class DirectionalLight : Light
+    public class GlobalLight : Light
     {
         private Vector3 _direction;
 
@@ -18,7 +18,7 @@ namespace RayTracer.Models
             set { _direction = value.Normalized(); }
         }
 
-        public DirectionalLight(string name, Vector3 color, float intensity, Vector3 direction)
+        public GlobalLight(string name, Vector3 color, float intensity, Vector3 direction)
             : base(name, color, intensity)
         {
             _direction = direction.Normalized();
@@ -34,9 +34,14 @@ namespace RayTracer.Models
             return float.MaxValue;
         }
 
+        public override float GetIntensityAt(Vector3 point)
+        {
+            return Intensity;
+        }
+
         public override Light Clone()
         {
-            return new DirectionalLight(Name, Color, Intensity, _direction);
+            return new GlobalLight(Name, Color, Intensity, _direction);
         }
     }
 }

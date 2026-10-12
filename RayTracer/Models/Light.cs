@@ -56,6 +56,13 @@ namespace RayTracer.Models
         public abstract float GetDistanceToLight(Vector3 point);
 
         /// <summary>
+        /// Интенсивность света в точке
+        /// </summary>
+        /// <param name="point">Точка, в которой вычисляется интенсивность</param>
+        /// <returns></returns>
+        public abstract float GetIntensityAt(Vector3 point);
+
+        /// <summary>
         /// Клонирование источника света
         /// </summary>
         /// <returns>Копия источника света</returns>
