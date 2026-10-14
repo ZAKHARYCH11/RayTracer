@@ -8,6 +8,9 @@
         private Camera _mainCamera;
         private List<SceneObject> _objects;
         private List<Light> _lights;
+        private byte[] _lightmapData;
+        private int _lightmapWidth;
+        private int _lightmapHeight;
 
         /// <summary>
         /// Камера
@@ -34,6 +37,33 @@
         {
             get { return _lights; }
             set { _lights = value; }
+        }
+
+        /// <summary>
+        /// Массив пикселей
+        /// </summary>
+        public byte[] LightmapData
+        {
+            get { return _lightmapData; }
+            set { _lightmapData = value; }
+        }
+
+        /// <summary>
+        /// Ширина световой карты
+        /// </summary>
+        public int LightmapWidth
+        {
+            get { return _lightmapWidth; }
+            set { _lightmapWidth = value; }
+        }
+
+        /// <summary>
+        /// Высота световой карты
+        /// </summary>
+        public int LightmapHeight
+        {
+            get { return _lightmapHeight; }
+            set { _lightmapHeight = value; }
         }
 
         public Scene()

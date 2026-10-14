@@ -1,4 +1,5 @@
-﻿using OpenTK.Mathematics;
+﻿using OpenTK.Graphics.GL;
+using OpenTK.Mathematics;
 using RayTracer.Models;
 using RayTracer.Views;
 using System;
@@ -32,12 +33,15 @@ namespace RayTracer.Controllers
             _engine = new RayTracerEngine();
             _scene = new Scene();
 
-            InitializeTestScene();
+            InitializeStartScene();
 
             _view.BtnRender.Click += OnRenderClicked;
         }
 
-        public void InitializeTestScene()
+        /// <summary>
+        /// Инициализация начальной сцены
+        /// </summary>
+        public void InitializeStartScene()
         {
             _scene.MainCamera = new Camera("Камера", new Vector3(0, 0, 1.5f), new Vector3(0, 0, -1), new Vector3(0, 1, 0), 60f);
 
@@ -68,6 +72,9 @@ namespace RayTracer.Controllers
                 _view.SceneObjectsList.Items.Add(obj);
         }
 
+        /// <summary>
+        /// Добавлние новой сферы
+        /// </summary>
         public void AddSphere()
         {
             string name = GetUniqueName("Новая сфера", isLight: false);
@@ -75,6 +82,9 @@ namespace RayTracer.Controllers
             UpdateHierarchyView();
         }
 
+        /// <summary>
+        /// Добавление нового куба
+        /// </summary>
         public void AddCube()
         {
             string name = GetUniqueName("Новый куб", isLight: false);
@@ -82,6 +92,9 @@ namespace RayTracer.Controllers
             UpdateHierarchyView();
         }
 
+        /// <summary>
+        /// Добавление нового цилиндра
+        /// </summary>
         public void AddCylinder()
         {
             string name = GetUniqueName("Новый цилиндр", isLight: false);
@@ -89,25 +102,39 @@ namespace RayTracer.Controllers
             UpdateHierarchyView();
         }
 
+        /// <summary>
+        /// Добавление нового глобавльного света
+        /// </summary>
         public void AddGlobalLight()
         {
             string name = GetUniqueName("Новый глобальный свет", isLight: true);
             _scene.Lights.Add(new GlobalLight(name, new Vector3(1, 1, 1), 1.0f, new Vector3(0, -1, 0)));
             UpdateHierarchyView();
         }
+
+        /// <summary>
+        /// Добавление нового направленного света
+        /// </summary>
         public void AddSpotLight()
         {
             string name = GetUniqueName("Новый направленный свет", isLight: true);
-            _scene.Lights.Add(new SpotLight(name, new Vector3(1, 1, 1), 1.0f, new Vector3(1, 1, 1), new Vector3(0, -1, 0), 30f));
-            UpdateHierarchyView();
-        }
-        public void AddPointLight()
-        {
-            string name = GetUniqueName("Новый точечный свет", isLight: true);
-            _scene.Lights.Add(new PointLight(name, new Vector3(1, 1, 1), 1.0f, new Vector3(1, 1, 1)));
+            _scene.Lights.Add(new SpotLight(name, new Vector3(1, 1, 1), 1.0f, new Vector3(1, 1, 1), new Vector3(0, -1, 0), 30f, 10f));
             UpdateHierarchyView();
         }
 
+        /// <summary>
+        /// Добавление нового точечного света
+        /// </summary>
+        public void AddPointLight()
+        {
+            string name = GetUniqueName("Новый точечный свет", isLight: true);
+            _scene.Lights.Add(new PointLight(name, new Vector3(1, 1, 1), 1.0f, new Vector3(1, 1, 1), 10f));
+            UpdateHierarchyView();
+        }
+
+        /// <summary>
+        /// Клонирование выбранного объекта
+        /// </summary>
         public void CloneSelected()
         {
             var selected = _view.SceneObjectsList.SelectedItem;
@@ -129,6 +156,9 @@ namespace RayTracer.Controllers
             UpdateHierarchyView();
         }
 
+        /// <summary>
+        /// Удаление выбранного объекта
+        /// </summary>
         public void DeleteSelected()
         {
             var selected = _view.SceneObjectsList.SelectedItem;
@@ -142,35 +172,51 @@ namespace RayTracer.Controllers
             UpdateHierarchyView();
         }
 
+        /// <summary>
+        /// Выбор цвета
+        /// </summary>
         public void SelectColor()
         {
             var selectedItem = _view.SceneObjectsList.SelectedItem;
+            if (selectedItem == null) return;
 
-            if (selectedItem is SceneObject sceneObj)
+            Vector3 currColor = Vector3.Zero;
+
+            if (selectedItem is SceneObject obj)
+                currColor = obj.Material.Color;
+            else if (selectedItem is Light light)
+                currColor = light.Color;
+            else
+                return;
+
+            var dialog = new System.Windows.Forms.ColorDialog();
+            dialog.Color = System.Drawing.Color.FromArgb(
+                255,
+                (int)(currColor.X * 255),
+                (int)(currColor.Y * 255),
+                (int)(currColor.Z * 255)
+            );
+
+            if (dialog.ShowDialog() == System.Windows.Forms.DialogResult.OK)
             {
-                var dialog = new System.Windows.Forms.ColorDialog();
-
-                Vector3 currColor = sceneObj.Material.Color;
-                dialog.Color = System.Drawing.Color.FromArgb(
-                    255,
-                    (int)(currColor.X * 255),
-                    (int)(currColor.Y * 255),
-                    (int)(currColor.Z * 255)
+                Vector3 newColor = new Vector3(
+                    dialog.Color.R / 255f,
+                    dialog.Color.G / 255f,
+                    dialog.Color.B / 255f
                 );
 
-                if (dialog.ShowDialog() == System.Windows.Forms.DialogResult.OK)
-                {
-                    sceneObj.Material.Color = new Vector3(
-                        dialog.Color.R / 255f,
-                        dialog.Color.G / 255f,
-                        dialog.Color.B / 255f
-                    );
+                if (selectedItem is SceneObject o)
+                    o.Material.Color = newColor;
+                else if (selectedItem is Light l)
+                    l.Color = newColor;
 
-                    UpdateColorButtonUI(sceneObj.Material.Color);
-                }
+                UpdateColorButtonUI(newColor);
             }
         }
 
+        /// <summary>
+        /// Сохранение сцены
+        /// </summary>
         public void SaveScene()
         {
             var dialog = new Microsoft.Win32.SaveFileDialog
@@ -194,6 +240,9 @@ namespace RayTracer.Controllers
             }
         }
 
+        /// <summary>
+        /// Загрузка сцены
+        /// </summary>
         public void LoadScene()
         {
             var dialog = new Microsoft.Win32.OpenFileDialog
@@ -213,6 +262,17 @@ namespace RayTracer.Controllers
                         _scene = loadedScene;
                         UpdateHierarchyView();
                         _view.SceneObjectsList.SelectedItem = null;
+
+                        if (_scene.LightmapData != null && _scene.LightmapData.Length > 0)
+                        {
+                            _view.ResX.Text = _scene.LightmapWidth.ToString();
+                            _view.ResY.Text = _scene.LightmapHeight.ToString();
+                            DisplayImage(_scene.LightmapData, _scene.LightmapWidth, _scene.LightmapHeight);
+                        }
+                        else
+                        {
+                            _view.LightmapPreviewImage.Source = null;
+                        }
 
                         System.Windows.MessageBox.Show("Сцена успешно загружена!", "Загрузка", MessageBoxButton.OK, MessageBoxImage.Information);
                     }
@@ -245,9 +305,11 @@ namespace RayTracer.Controllers
             if (selectedItem is Camera cam)
             {
                 _view.PanelCoordinates.Visibility = Visibility.Visible;
+                _view.PanelCamera.Visibility = Visibility.Visible;
                 _view.PosX.Text = cam.Position.X.ToString("0.00", culture);
                 _view.PosY.Text = cam.Position.Y.ToString("0.00", culture);
                 _view.PosZ.Text = cam.Position.Z.ToString("0.00", culture);
+                _view.FOV.Text = cam.FovDegrees.ToString("0.00", culture);
             }
             else if (selectedItem is SceneObject obj)
             {
@@ -258,6 +320,7 @@ namespace RayTracer.Controllers
                 _view.PosZ.Text = obj.Center.Z.ToString("0.00", culture);
 
                 _view.PanelMaterial.Visibility = Visibility.Visible;
+                _view.PanelColor.Visibility = Visibility.Visible;
                 _view.SliderReflectivity.Value = obj.Material.Reflectivity;
                 _view.Reflectivity.Text = obj.Material.Reflectivity.ToString("0.00", culture);
                 UpdateColorButtonUI(obj.Material.Color);
@@ -282,7 +345,9 @@ namespace RayTracer.Controllers
             else if (selectedItem is Light light)
             {
                 _view.PanelLight.Visibility = Visibility.Visible;
+                _view.PanelColor.Visibility = Visibility.Visible;
                 _view.SliderLightIntensity.Value = light.Intensity;
+                UpdateColorButtonUI(light.Color);
 
                 if (light is GlobalLight gl)
                 {
@@ -294,6 +359,7 @@ namespace RayTracer.Controllers
                 else if (light is PointLight pl)
                 {
                     _view.PanelCoordinates.Visibility = Visibility.Visible;
+                    _view.PanelLightRange.Visibility = Visibility.Visible;
                     _view.PosX.Text = pl.Position.X.ToString("0.00", culture);
                     _view.PosY.Text = pl.Position.Y.ToString("0.00", culture);
                     _view.PosZ.Text = pl.Position.Z.ToString("0.00", culture);
@@ -301,6 +367,7 @@ namespace RayTracer.Controllers
                 else if (light is SpotLight sl)
                 {
                     _view.PanelCoordinates.Visibility = Visibility.Visible;
+                    _view.PanelLightRange.Visibility = Visibility.Visible;
                     _view.PosX.Text = sl.Position.X.ToString("0.00", culture);
                     _view.PosY.Text = sl.Position.Y.ToString("0.00", culture);
                     _view.PosZ.Text = sl.Position.Z.ToString("0.00", culture);
@@ -334,6 +401,7 @@ namespace RayTracer.Controllers
             float.TryParse(_view.PosX.Text.Replace(',', '.'), style, culture, out float x);
             float.TryParse(_view.PosY.Text.Replace(',', '.'), style, culture, out float y);
             float.TryParse(_view.PosZ.Text.Replace(',', '.'), style, culture, out float z);
+            Vector3 newVector = new Vector3(x, y, z);
 
             float.TryParse(_view.DirX.Text.Replace(',', '.'), style, culture, out float dx);
             float.TryParse(_view.DirY.Text.Replace(',', '.'), style, culture, out float dy);
@@ -351,11 +419,16 @@ namespace RayTracer.Controllers
             float.TryParse(_view.Reflectivity.Text.Replace(',', '.'), style, culture, out float reflectiviti);
             reflectiviti = Math.Clamp(reflectiviti, 0f, 1f);
 
-            Vector3 newVector = new Vector3(x, y, z);
+            float.TryParse(_view.FOV.Text.Replace(',', '.'), style, culture, out float fov);
+            fov = Math.Clamp(fov, 1f, 179.99f);
+
+            float.TryParse(_view.LightRange.Text.Replace(',', '.'), style, culture, out float lightRange);
+            lightRange = Math.Max(0.1f, lightRange);
 
             if (selectedItem is Camera cam)
             {
                 cam.Position = newVector;
+                cam.FovDegrees = fov;
             }
             else if (selectedItem is SceneObject obj)
             {
@@ -380,7 +453,7 @@ namespace RayTracer.Controllers
                 else
                 {
                     obj.Material.Reflectivity = (float)_view.SliderReflectivity.Value;
-                    _view.Reflectivity.Text = obj.Material.Reflectivity.ToString();
+                    _view.Reflectivity.Text = obj.Material.Reflectivity.ToString("0.00", culture);
                 }
                 
             }
@@ -395,12 +468,14 @@ namespace RayTracer.Controllers
                 else if (light is PointLight pl)
                 {
                     pl.Position = newVector;
+                    pl.Range = lightRange;
                 }
                 else if (light is SpotLight sl)
                 {
                     sl.Position = newVector;
                     sl.Direction = newDir;
                     sl.CutOffAngle = Math.Clamp(angle, 1f, 180f);
+                    sl.Range = lightRange;
                 }
             }
         }
@@ -410,10 +485,16 @@ namespace RayTracer.Controllers
         /// </summary>
         public void OnTraceDepthChanged()
         {
+            if (_isUpdatingUI) return;
+
             var style = System.Globalization.NumberStyles.Any;
             var culture = System.Globalization.CultureInfo.InvariantCulture;
-            float.TryParse(_view.TraceDepth.Text.Replace(',', '.'), style, culture, out float traceDepth);
-            _view.SliderTraceDepth.Value = traceDepth;
+            int.TryParse(_view.TraceDepth.Text, style, culture, out int traceDepth);
+            
+            _view.SliderTraceDepth.Value = Math.Clamp(traceDepth, 1, 10);
+
+            if (traceDepth < 1 || traceDepth > 10)
+                _view.TraceDepth.Text = Math.Clamp(traceDepth, 1, 10).ToString();
         }
 
         /// <summary>
@@ -421,7 +502,9 @@ namespace RayTracer.Controllers
         /// </summary>
         public void OnSliderTraceDepthChanged()
         {
-            float traceDepth = (float)_view.SliderTraceDepth.Value;
+            if (_isUpdatingUI) return;
+
+            int traceDepth = (int)_view.SliderTraceDepth.Value;
             _view.TraceDepth.Text = traceDepth.ToString();
         }
 
@@ -501,6 +584,11 @@ namespace RayTracer.Controllers
             byte[] pixelData = await Task.Run(() => _engine.RenderView(_scene, _scene.MainCamera, width, height, traceDepth));
 
             sw.Stop();
+
+            _scene.LightmapData = pixelData;
+            _scene.LightmapWidth = width;
+            _scene.LightmapHeight = height;
+
             DisplayImage(pixelData, width, height);
 
             _view.BtnRender.IsEnabled = true;
@@ -527,6 +615,7 @@ namespace RayTracer.Controllers
         /// <summary>
         /// Обновление цвета и текста кнопки выбора цвета
         /// </summary>
+        /// <param name="color">Цвет</param>
         private void UpdateColorButtonUI(Vector3 color)
         {
             byte r = (byte)(Math.Clamp(color.X, 0f, 1f) * 255);
@@ -547,11 +636,17 @@ namespace RayTracer.Controllers
             _view.PanelDirection.Visibility = Visibility.Collapsed;
             _view.PanelSpotAngle.Visibility = Visibility.Collapsed;
 
+            _view.PanelMaterial.Visibility = Visibility.Collapsed;
+            _view.PanelColor.Visibility = Visibility.Collapsed;
+
             _view.PanelSphere.Visibility = Visibility.Collapsed;
             _view.PanelCube.Visibility = Visibility.Collapsed;
             _view.PanelCylinder.Visibility = Visibility.Collapsed;
-            _view.PanelMaterial.Visibility = Visibility.Collapsed;
+  
             _view.PanelLight.Visibility = Visibility.Collapsed;
+            _view.PanelLightRange.Visibility = Visibility.Collapsed;
+
+            _view.PanelCamera.Visibility = Visibility.Collapsed;
         }
     }
 }

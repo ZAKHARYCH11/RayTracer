@@ -114,12 +114,10 @@
                 <TabControl>
 
                     <TabItem Header="Свойства">
-                        <!-- Главный контейнер (Скрыт по умолчанию, пока ничего не выбрано) -->
                         <StackPanel x:Name="PropertiesContainer" Margin="10" Visibility="Hidden">
 
                             <TextBlock Text="Настройки объекта" FontWeight="Bold" FontSize="14" HorizontalAlignment="Center" Margin="0,5,0,15"/>
-
-                            <!-- ПАНЕЛЬ КООРДИНАТ -->
+                            
                             <StackPanel x:Name="PanelCoordinates" Visibility="Collapsed" Margin="0,0,0,15">
                                 <TextBlock Text="Координаты (X, Y, Z)"/>
                                 <UniformGrid Columns="3" Margin="0,5,0,0">
@@ -129,7 +127,6 @@
                                 </UniformGrid>
                             </StackPanel>
 
-                            <!-- ПАНЕЛЬ НАПРАВЛЕНИЯ -->
                             <StackPanel x:Name="PanelDirection" Visibility="Collapsed" Margin="0,0,0,15">
                                 <TextBlock Text="Направление вектора (X, Y, Z)"/>
                                 <UniformGrid Columns="3" Margin="0,5,0,0">
@@ -139,25 +136,21 @@
                                 </UniformGrid>
                             </StackPanel>
 
-                            <!-- ПАНЕЛЬ УГЛА КОНУСА -->
                             <StackPanel x:Name="PanelSpotAngle" Visibility="Collapsed" Margin="0,0,0,15">
                                 <TextBlock Text="Угол конуса света (в градусах)"/>
                                 <TextBox x:Name="SpotAngle" Text="30" TextChanged="Properties_Changed"/>
                             </StackPanel>
 
-                            <!-- ПАНЕЛЬ СФЕРЫ -->
                             <StackPanel x:Name="PanelSphere" Visibility="Collapsed" Margin="0,0,0,15">
                                 <TextBlock Text="Радиус сферы"/>
                                 <TextBox x:Name="Radius" Text="0.5" TextChanged="Properties_Changed"/>
                             </StackPanel>
 
-                            <!-- ПАНЕЛЬ КУБА -->
                             <StackPanel x:Name="PanelCube" Visibility="Collapsed" Margin="0,0,0,15">
                                 <TextBlock Text="Сторона куба"/>
                                 <TextBox x:Name="Side" Text="1.0" TextChanged="Properties_Changed"/>
                             </StackPanel>
 
-                            <!-- ПАНЕЛЬ ЦИЛИНДРА -->
                             <StackPanel x:Name="PanelCylinder" Visibility="Collapsed" Margin="0,0,0,15">
                                 <TextBlock Text="Радиус основания"/>
                                 <TextBox x:Name="CylRadius" Text="0.5" Margin="0,0,0,5" TextChanged="Properties_Changed"/>
@@ -165,11 +158,12 @@
                                 <TextBox x:Name="Height" Text="1.0" TextChanged="Properties_Changed"/>
                             </StackPanel>
 
-                            <!-- ПАНЕЛЬ МАТЕРИАЛА (Цвет и Зеркальность) -->
-                            <StackPanel x:Name="PanelMaterial" Visibility="Collapsed">
-                                <TextBlock Text="Цвет материала"/>
-                                <Button x:Name="BtnSelectColor" Content="Выбрать цвет" Margin="0,5,0,15" Click="BtnSelectColor_Click"/>
+                            <StackPanel x:Name="PanelColor" Visibility="Collapsed" Margin="0,0,0,15">
+                                <TextBlock Text="Цвет"/>
+                                <Button x:Name="BtnSelectColor" Content="Выбрать цвет" Margin="0,5,0,0" Click="BtnSelectColor_Click"/>
+                            </StackPanel>
 
+                            <StackPanel x:Name="PanelMaterial" Visibility="Collapsed">
                                 <TextBlock Text="Зеркальность:"/>
                                 <Grid Margin="0,5,0,15">
                                     <Grid.ColumnDefinitions>
@@ -181,10 +175,19 @@
                                 </Grid>
                             </StackPanel>
 
-                            <!-- ПАНЕЛЬ ИСТОЧНИКА СВЕТА -->
                             <StackPanel x:Name="PanelLight" Visibility="Collapsed">
                                 <TextBlock Text="Интенсивность света"/>
                                 <Slider x:Name="SliderLightIntensity" Minimum="0" Maximum="5" Value="1" Margin="0,5,0,15" ValueChanged="Properties_Changed"/>
+                            </StackPanel>
+
+                            <StackPanel x:Name="PanelLightRange" Visibility="Collapsed" Margin="0,0,0,15">
+                                <TextBlock Text="Дальность освещения"/>
+                                <TextBox x:Name="LightRange" Text="10.0" TextChanged="Properties_Changed"/>
+                            </StackPanel>
+
+                            <StackPanel x:Name="PanelCamera" Visibility="Collapsed">
+                                <TextBlock Text="Угол обзора"/>
+                                <TextBox x:Name="FOV" Text="60" TextChanged="Properties_Changed"/>
                             </StackPanel>
 
                         </StackPanel>

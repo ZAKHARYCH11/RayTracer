@@ -11,6 +11,7 @@ namespace RayTracer.Models
         private Vector3 _position;
         private Vector3 _direction;
         private float _cutOffAngle;
+        private float _range;
 
         /// <summary>
         /// Координаты источника
@@ -39,12 +40,22 @@ namespace RayTracer.Models
             set { _cutOffAngle = value; }
         }
 
-        public SpotLight(string name, Vector3 color, float intensity, Vector3 position, Vector3 direction, float cutOffAngle)
+        /// <summary>
+        /// Дальность света
+        /// </summary>
+        public float Range
+        {
+            get { return _range; }
+            set { _range = value; }
+        }
+
+        public SpotLight(string name, Vector3 color, float intensity, Vector3 position, Vector3 direction, float cutOffAngle, float range)
             : base(name, color, intensity)
         {
             _position = position;
             _direction = direction.Normalized();
             _cutOffAngle = cutOffAngle;
+            _range = range;
         }
 
         public override Vector3 GetDirectionToLight(Vector3 point)
@@ -58,18 +69,30 @@ namespace RayTracer.Models
 
         public override float GetIntensityAt(Vector3 point)
         {
+            float distance = (point - _position).Length;
+            if (distance > _range)
+                return 0f;
+
+            float distanceRatio = distance / _range;
+            float distAttenuation = Math.Max(0, 1.0f - distanceRatio * distanceRatio);
+
             Vector3 lightToPoint = (point - _position).Normalized();
-
             float cosTheta = Vector3.Dot(lightToPoint, Direction);
-
             float cosCutOff = (float)Math.Cos(MathHelper.DegreesToRadians(_cutOffAngle));
 
-            return cosTheta >= cosCutOff ? Intensity : 0f;
+            if (cosTheta <= cosCutOff)
+                return 0.0f;
+
+            float spotAttenuation = (cosTheta - cosCutOff) / (1.0f - cosCutOff);
+
+            spotAttenuation *= spotAttenuation;
+
+            return Intensity * distAttenuation * spotAttenuation;
         }
 
         public override Light Clone()
         {
-            return new SpotLight(Name, Color, Intensity, _position, _direction, _cutOffAngle);
+            return new SpotLight(Name, Color, Intensity, _position, _direction, _cutOffAngle, _range);
         }
     }
 }
