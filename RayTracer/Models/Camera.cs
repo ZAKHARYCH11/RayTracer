@@ -11,7 +11,7 @@ namespace RayTracer.Models
     {
         private string _name;
         private Vector3 _position;
-        private Vector3 _lookAt;
+        private Vector3 _direction;
         private Vector3 _up;
         private float _fovDegrees;
 
@@ -36,10 +36,10 @@ namespace RayTracer.Models
         /// <summary>
         /// Направление взгяда камеры
         /// </summary>
-        public Vector3 LookAt
+        public Vector3 Direction
         {
-            get { return _lookAt; }
-            set { _lookAt = value; }
+            get { return _direction; }
+            set { _direction = value.Normalized(); }
         }
 
         /// <summary>
@@ -78,11 +78,11 @@ namespace RayTracer.Models
         /// <param name="lookAt">Точка, куда смотрит камера</param>
         /// <param name="up">Вектор "верха"</param>
         /// <param name="fovDegrees">Вертикальный угол обзора (в градусах)</param>
-        public Camera(string name, Vector3 position, Vector3 lookAt, Vector3 up, float fovDegrees)
+        public Camera(string name, Vector3 position, Vector3 direction, Vector3 up, float fovDegrees)
         {
             _name = name;
             _position = position;
-            _lookAt = lookAt;
+            _direction = direction;
             _up = up;
             _fovDegrees = fovDegrees;
         }
@@ -98,13 +98,13 @@ namespace RayTracer.Models
             float viewportHeight = 2.0f * h;
             float viewportWidth = aspectRatio * viewportHeight;
 
-            _forward = (_position - _lookAt).Normalized();
+            _forward = -_direction;
             _right = Vector3.Cross(_up, _forward).Normalized();
             _localUp = Vector3.Cross(_forward, _right);
 
             _horizontal = viewportWidth * _right;
             _vertical = viewportHeight * _localUp;
-            _lowerLeftCorner = Position - _horizontal / 2.0f - _vertical / 2.0f - _forward;
+            _lowerLeftCorner = _position - _horizontal / 2.0f - _vertical / 2.0f - _forward;
         }
 
         /// <summary>

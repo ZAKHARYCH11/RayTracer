@@ -38,6 +38,10 @@ namespace RayTracer.Views
             _controller = new MainController(this);
         }
 
+        /// <summary>
+        /// Отрисовка с помощью OpenGL
+        /// </summary>
+        /// <param name="delta">Пройденное время между кадрами</param>
         private void OpenGlControl_Render(TimeSpan delta)
         {
             // 1. Очистка экрана
@@ -47,22 +51,23 @@ namespace RayTracer.Views
             if (Controller == null || Controller.Scene == null) return;
 
             // 2. Настройка виртуальной камеры OpenGL
-            // Матрица проекции (угол обзора, соотношение сторон)
+            Camera cam = Controller.Scene.MainCamera;
+            
             GL.MatrixMode(MatrixMode.Projection);
             GL.LoadIdentity();
             float aspect = (float)(OpenGlControl.ActualWidth / OpenGlControl.ActualHeight);
-            Matrix4 projection = Matrix4.CreatePerspectiveFieldOfView(MathHelper.DegreesToRadians(60f), aspect, 0.1f, 100f);
+
+            if (aspect <= 0) aspect = 1;
+
+            float fovRad = MathHelper.DegreesToRadians(Math.Clamp(cam.FovDegrees, 1f, 179.99f));
+            Matrix4 projection = Matrix4.CreatePerspectiveFieldOfView(fovRad, aspect, 0.1f, 100f);
             GL.LoadMatrix(ref projection);
 
-            // Матрица вида (позиция камеры в пространстве)
             GL.MatrixMode(MatrixMode.Modelview);
             GL.LoadIdentity();
 
-            Matrix4 view = Matrix4.LookAt(new Vector3(0, 0, 1.5f), new Vector3(0, 0, -1), new Vector3(0, 1, 0));
+            Matrix4 view = Matrix4.LookAt(cam.Position, cam.Position + cam.Direction, cam.Up);
             GL.LoadMatrix(ref view);
-
-            // Включаем тест глубины, чтобы дальние линии не перекрывали ближние
-            GL.Enable(EnableCap.DepthTest);
 
             // 3. Отрисовка координатной сетки (пола)
             DrawGrid();
@@ -213,31 +218,62 @@ namespace RayTracer.Views
             GL.PopMatrix();
         }
 
+        /// <summary>
+        /// Нажатие кнопки добавления объекта
+        /// </summary>
         private void BtnAddObject_Click(object sender, RoutedEventArgs e)
         {
             BtnAddObject.ContextMenu.IsOpen = true;
         }
 
+        /// <summary>
+        /// Нажатие кнопки добавления сферы
+        /// </summary>
         private void MenuAddSphere_Click(object sender, RoutedEventArgs e) => Controller?.AddSphere();
+        /// <summary>
+        /// Нажатие кнопки добавления куба
+        /// </summary>
         private void MenuAddCube_Click(object sender, RoutedEventArgs e) => Controller?.AddCube();
+        /// <summary>
+        /// Нажатие кнопки добавления цилиндра
+        /// </summary>
         private void MenuAddCylinder_Click(object sender, RoutedEventArgs e) => Controller?.AddCylinder();
+        /// <summary>
+        /// Нажатие кнопки добавления глобального света
+        /// </summary>
         private void MenuAddGlobalLight_Click(object sender, RoutedEventArgs e) => Controller?.AddGlobalLight();
+        /// <summary>
+        /// Нажатие кнопки добавления направленного света
+        /// </summary>
         private void MenuAddSpotLight_Click(object sender, RoutedEventArgs e) => Controller?.AddSpotLight();
+        /// <summary>
+        /// Нажатие кнопки добавления точечного света
+        /// </summary>
         private void MenuAddPointLight_Click(object sender, RoutedEventArgs e) => Controller?.AddPointLight();
+        /// <summary>
+        /// Нажатие кнопки клонирования объекта
+        /// </summary>
         private void MenuClone_Click(object sender, RoutedEventArgs e) => Controller?.CloneSelected();
+        /// <summary>
+        /// Нажатие кнопки удаления объекта
+        /// </summary>
         private void MenuDelete_Click(object sender, RoutedEventArgs e) => Controller?.DeleteSelected();
+        /// <summary>
+        /// Нажатие кнопки открытия сцены
+        /// </summary>
         private void MenuOpenScene_Click(object sender, RoutedEventArgs e) => Controller?.LoadScene();
+        /// <summary>
+        /// Нажатие кнопки сохранения сцены
+        /// </summary>
         private void MenuSaveScene_Click(object sender, RoutedEventArgs e) => Controller?.SaveScene();
+        /// <summary>
+        /// Нажатие кнопки выхода
+        /// </summary>
         private void MenuExit_Click(object sender, RoutedEventArgs e) => System.Windows.Application.Current.Shutdown();
 
-        private void ListBoxItem_RightClick(object sender, System.Windows.Input.MouseButtonEventArgs e)
-        {
-            if (sender is System.Windows.Controls.ListBoxItem item)
-            {
-                item.IsSelected = true;
-            }
-        }
-
+        /// <summary>
+        /// Нажатие ПКМ по элементу списка объектов
+        /// </summary>
         private void SceneObjectsList_PreviewMouseRightButtonDown(object sender, System.Windows.Input.MouseButtonEventArgs e)
         {
             DependencyObject originalSource = (DependencyObject)e.OriginalSource;
@@ -253,6 +289,9 @@ namespace RayTracer.Views
             }
         }
 
+        /// <summary>
+        /// Выбор объекта в списке
+        /// </summary>
         private void SceneObjectsList_SelectionChanged(object sender, System.Windows.Controls.SelectionChangedEventArgs e)
         {
             if (Controller != null)
@@ -261,6 +300,9 @@ namespace RayTracer.Views
             }
         }
 
+        /// <summary>
+        /// Изменение свойств объекта
+        /// </summary>
         private void Properties_Changed(object sender, RoutedEventArgs e)
         {
             if (Controller != null)
@@ -269,6 +311,9 @@ namespace RayTracer.Views
             }
         }
 
+        /// <summary>
+        /// Изменение значения слайдера глубины трассировки
+        /// </summary>
         private void SliderTraceDepth_Changed(object sender, RoutedEventArgs e)
         {
             if(Controller != null)
@@ -277,6 +322,9 @@ namespace RayTracer.Views
             }
         }
 
+        /// <summary>
+        /// Изменение значения глубины трассировки
+        /// </summary>
         private void TraceDepth_Changed(object sender, RoutedEventArgs e)
         {
             if (Controller != null)
@@ -285,6 +333,9 @@ namespace RayTracer.Views
             }
         }
 
+        /// <summary>
+        /// Нажатие кнопки выбора цвета
+        /// </summary>
         private void BtnSelectColor_Click(object sender, RoutedEventArgs e)
         {
             if (Controller != null)
@@ -293,6 +344,9 @@ namespace RayTracer.Views
             }
         }
 
+        /// <summary>
+        /// Поиск дочернего элемента
+        /// </summary>
         private T FindVisualChild<T>(DependencyObject parent, string name) where T : FrameworkElement
         {
             for (int i = 0; i < System.Windows.Media.VisualTreeHelper.GetChildrenCount(parent); i++)
@@ -305,6 +359,9 @@ namespace RayTracer.Views
             return null;
         }
 
+        /// <summary>
+        /// Нажатие кнопки переименования объекта
+        /// </summary>
         private void MenuRename_Click(object sender, RoutedEventArgs e)
         {
             if (sender is System.Windows.Controls.MenuItem menuItem && menuItem.DataContext is object obj)
@@ -330,6 +387,9 @@ namespace RayTracer.Views
             }
         }
 
+        /// <summary>
+        /// Завершение переименования объекта
+        /// </summary>
         private void NameInput_KeyDown(object sender, System.Windows.Input.KeyEventArgs e)
         {
             if (e.Key == System.Windows.Input.Key.Enter)
@@ -338,11 +398,17 @@ namespace RayTracer.Views
                 CancelRename(sender as System.Windows.Controls.TextBox);
         }
 
+        /// <summary>
+        /// Потеря фокуса поля ввода имени
+        /// </summary>
         private void NameInput_LostFocus(object sender, RoutedEventArgs e)
         {
             CommitRename(sender as System.Windows.Controls.TextBox);
         }
 
+        /// <summary>
+        /// Сохранение нового имени
+        /// </summary>
         private void CommitRename(System.Windows.Controls.TextBox textBox)
         {
             if (_isCommittingRename || textBox == null || textBox.Visibility != Visibility.Visible) return;
@@ -368,6 +434,9 @@ namespace RayTracer.Views
             _isCommittingRename = false;
         }
         
+        /// <summary>
+        /// Отмена переименования объекта
+        /// </summary>
         private void CancelRename(System.Windows.Controls.TextBox textBox)
         {
             if (textBox == null) return;
@@ -380,12 +449,32 @@ namespace RayTracer.Views
             }
         }
 
+        /// <summary>
+        /// Сброс фокуса элемента
+        /// </summary>
         private void ClearFocus_MouseDown(object sender, System.Windows.Input.MouseButtonEventArgs e)
         {
             if (sender is FrameworkElement element)
             {
                 element.Focus();
             }
+        }
+
+        /// <summary>
+        /// Нажатие по изображения световой карты
+        /// </summary>
+        private void LightmapPreviewImage_MouseLeftButtonDown(object sender, System.Windows.Input.MouseButtonEventArgs e)
+        {
+            if (LightmapPreviewImage.Source == null) return;
+
+            e.Handled = true;
+
+            LightmapWindow viewer = new LightmapWindow(LightmapPreviewImage.Source);
+
+            viewer.Owner = this;
+
+            viewer.Show();
+            viewer.Activate();
         }
     }
 }

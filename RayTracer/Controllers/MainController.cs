@@ -77,7 +77,7 @@ namespace RayTracer.Controllers
         /// </summary>
         public void AddSphere()
         {
-            string name = GetUniqueName("Новая сфера", isLight: false);
+            string name = GetUniqueName("Новая сфера");
             _scene.Objects.Add(new Sphere(name, new Vector3(0, 0, -2), 0.5f, new Material(new Vector3(0.8f, 0.8f, 0.8f))));
             UpdateHierarchyView();
         }
@@ -87,7 +87,7 @@ namespace RayTracer.Controllers
         /// </summary>
         public void AddCube()
         {
-            string name = GetUniqueName("Новый куб", isLight: false);
+            string name = GetUniqueName("Новый куб");
             _scene.Objects.Add(new Cube(name, new Vector3(0, 0, -2), 1.0f, new Material(new Vector3(0.3f, 0.8f, 0.3f))));
             UpdateHierarchyView();
         }
@@ -97,7 +97,7 @@ namespace RayTracer.Controllers
         /// </summary>
         public void AddCylinder()
         {
-            string name = GetUniqueName("Новый цилиндр", isLight: false);
+            string name = GetUniqueName("Новый цилиндр");
             _scene.Objects.Add(new Cylinder(name, new Vector3(0, 0, -2), 0.5f, 1.0f, new Material(new Vector3(0.3f, 0.8f, 0.3f))));
             UpdateHierarchyView();
         }
@@ -107,7 +107,7 @@ namespace RayTracer.Controllers
         /// </summary>
         public void AddGlobalLight()
         {
-            string name = GetUniqueName("Новый глобальный свет", isLight: true);
+            string name = GetUniqueName("Новый глобальный свет");
             _scene.Lights.Add(new GlobalLight(name, new Vector3(1, 1, 1), 1.0f, new Vector3(0, -1, 0)));
             UpdateHierarchyView();
         }
@@ -117,7 +117,7 @@ namespace RayTracer.Controllers
         /// </summary>
         public void AddSpotLight()
         {
-            string name = GetUniqueName("Новый направленный свет", isLight: true);
+            string name = GetUniqueName("Новый направленный свет");
             _scene.Lights.Add(new SpotLight(name, new Vector3(1, 1, 1), 1.0f, new Vector3(1, 1, 1), new Vector3(0, -1, 0), 30f, 10f));
             UpdateHierarchyView();
         }
@@ -127,7 +127,7 @@ namespace RayTracer.Controllers
         /// </summary>
         public void AddPointLight()
         {
-            string name = GetUniqueName("Новый точечный свет", isLight: true);
+            string name = GetUniqueName("Новый точечный свет");
             _scene.Lights.Add(new PointLight(name, new Vector3(1, 1, 1), 1.0f, new Vector3(1, 1, 1), 10f));
             UpdateHierarchyView();
         }
@@ -143,13 +143,13 @@ namespace RayTracer.Controllers
             if (selected is SceneObject obj)
             {
                 var clone = obj.Clone();
-                clone.Name = GetUniqueName(obj.Name, isLight: false);
+                clone.Name = GetUniqueName(obj.Name);
                 _scene.Objects.Add(clone);
             }
             else if (selected is Light light)
             {
                 var clone = light.Clone();
-                clone.Name = GetUniqueName(light.Name, isLight: true);
+                clone.Name = GetUniqueName(light.Name);
                 _scene.Lights.Add(clone);
             }
 
@@ -305,10 +305,14 @@ namespace RayTracer.Controllers
             if (selectedItem is Camera cam)
             {
                 _view.PanelCoordinates.Visibility = Visibility.Visible;
+                _view.PanelDirection.Visibility = Visibility.Visible;
                 _view.PanelCamera.Visibility = Visibility.Visible;
                 _view.PosX.Text = cam.Position.X.ToString("0.00", culture);
                 _view.PosY.Text = cam.Position.Y.ToString("0.00", culture);
                 _view.PosZ.Text = cam.Position.Z.ToString("0.00", culture);
+                _view.DirX.Text = cam.Direction.X.ToString("0.00", culture);
+                _view.DirY.Text = cam.Direction.Y.ToString("0.00", culture);
+                _view.DirZ.Text = cam.Direction.Z.ToString("0.00", culture);
                 _view.FOV.Text = cam.FovDegrees.ToString("0.00", culture);
             }
             else if (selectedItem is SceneObject obj)
@@ -401,7 +405,7 @@ namespace RayTracer.Controllers
             float.TryParse(_view.PosX.Text.Replace(',', '.'), style, culture, out float x);
             float.TryParse(_view.PosY.Text.Replace(',', '.'), style, culture, out float y);
             float.TryParse(_view.PosZ.Text.Replace(',', '.'), style, culture, out float z);
-            Vector3 newVector = new Vector3(x, y, z);
+            Vector3 newPosiotion = new Vector3(x, y, z);
 
             float.TryParse(_view.DirX.Text.Replace(',', '.'), style, culture, out float dx);
             float.TryParse(_view.DirY.Text.Replace(',', '.'), style, culture, out float dy);
@@ -427,12 +431,13 @@ namespace RayTracer.Controllers
 
             if (selectedItem is Camera cam)
             {
-                cam.Position = newVector;
+                cam.Position = newPosiotion;
+                cam.Direction = newDir;
                 cam.FovDegrees = fov;
             }
             else if (selectedItem is SceneObject obj)
             {
-                obj.Center = newVector;
+                obj.Center = newPosiotion;
                 if(obj is Sphere sphere)
                     sphere.Radius = radius;
 
@@ -467,12 +472,12 @@ namespace RayTracer.Controllers
                 }
                 else if (light is PointLight pl)
                 {
-                    pl.Position = newVector;
+                    pl.Position = newPosiotion;
                     pl.Range = lightRange;
                 }
                 else if (light is SpotLight sl)
                 {
-                    sl.Position = newVector;
+                    sl.Position = newPosiotion;
                     sl.Direction = newDir;
                     sl.CutOffAngle = Math.Clamp(angle, 1f, 180f);
                     sl.Range = lightRange;
@@ -518,10 +523,9 @@ namespace RayTracer.Controllers
             string currentName = target.ToString();
             if (currentName == newName) return true;
 
-            bool isLight = target is Light;
-            bool nameExists = isLight
-                ? _scene.Lights.Exists(l => l.Name == newName)
-                : _scene.Objects.Exists(o => o.Name == newName);
+            bool nameExists = _scene.Objects.Exists(o => o.Name == newName) ||
+                              _scene.Lights.Exists(l => l.Name == newName) ||
+                              (_scene.MainCamera != null && _scene.MainCamera.Name == newName);
 
             if (nameExists)
             {
@@ -542,25 +546,28 @@ namespace RayTracer.Controllers
         }
 
         /// <summary>
-        /// Генератор имени копий
+        /// Генератор уникальных имен
         /// </summary>
         /// <returns>Уникальное имя</returns>
-        private string GetUniqueName(string originalName, bool isLight)
+        private string GetUniqueName(string originalName)
         {
             string baseName = originalName;
             int lastSpace = originalName.LastIndexOf(" (");
             if (lastSpace > 0 && originalName.EndsWith(")"))
                 baseName = originalName.Substring(0, lastSpace);
 
+            string newName = baseName;
             int counter = 1;
-            string newName = $"{baseName} ({counter})";
 
-            bool NameExists(string n) => isLight ? _scene.Lights.Exists(l => l.Name == n) : _scene.Objects.Exists(o => o.Name == n);
+            bool NameExists(string name)
+            {
+                return _scene.Lights.Exists(l => l.Name == name) || _scene.Objects.Exists(o => o.Name == name) || (_scene.MainCamera != null && _scene.MainCamera.Name == name);
+            }
 
             while (NameExists(newName))
             {
-                counter++;
                 newName = $"{baseName} ({counter})";
+                counter++;
             }
             return newName;
         }

@@ -4,6 +4,7 @@
              xmlns:local="clr-namespace:RayTracer"
              StartupUri="Views/MainWindow.xaml">
     <Application.Resources>
+        <SolidColorBrush x:Key="WindowBg" Color="#252526"/>
         <SolidColorBrush x:Key="PanelBg" Color="#2D2D30"/>
         <SolidColorBrush x:Key="ElementBg" Color="#3E3E42"/>
         <SolidColorBrush x:Key="SelectedBg" Color="#505050"/>
@@ -206,6 +207,13 @@
                     </ControlTemplate>
                 </Setter.Value>
             </Setter>
+        </Style>
+
+        <Style TargetType="ToolTip">
+            <Setter Property="Background" Value="{StaticResource DarkBg}"/>
+            <Setter Property="Foreground" Value="{StaticResource TextColor}"/>
+            <Setter Property="BorderThickness" Value="1"/>
+            <Setter Property="BorderBrush" Value="{StaticResource BorderColor}"/>
         </Style>
     </Application.Resources>
 </Application>
