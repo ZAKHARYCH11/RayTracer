@@ -1,5 +1,6 @@
 ﻿using OpenTK.Mathematics;
 
+
 namespace RayTracer.Models
 {
     /// <summary>
@@ -58,6 +59,18 @@ namespace RayTracer.Models
         /// </summary>
         /// <returns>Копия объекта</returns>
         public abstract SceneObject Clone();
+
+        /// <summary>
+        /// Получение точки на поверхности
+        /// </summary>
+        /// <param name="u">Координата u</param>
+        /// <param name="v">Координата v</param>
+        /// <param name="point">Точка поверхности</param>
+        /// <param name="normal">Нормаль к точке</param>
+        /// <returns></returns>
+        //public abstract bool TryGetSurfacePoint(float u, float v, out Vector3 point, out Vector3 normal);
+
+        ///public abstract MeshData BuildMesh(int detail);
 
         public override string ToString()
         {

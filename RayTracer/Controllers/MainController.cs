@@ -285,6 +285,82 @@ namespace RayTracer.Controllers
         }
 
         /// <summary>
+        /// Вращение камеры
+        /// </summary>
+        /// <param name="deltaX">Изменение координат мыши по X</param>
+        /// <param name="deltaY">Изменение координат мыши по Y</param>
+        public void RotateCamera(float deltaX, float deltaY)
+        {
+            float sensitivity = 0.005f;
+            Camera cam = _scene.MainCamera;
+
+            float pitch = (float)Math.Asin(cam.Direction.Y);
+            float yaw = (float)Math.Atan2(cam.Direction.Z, cam.Direction.X);
+
+            yaw += deltaX * sensitivity;
+            pitch -= deltaY * sensitivity;
+
+            float limit = MathHelper.DegreesToRadians(89.0f);
+            pitch = Math.Clamp(pitch, -limit, limit);
+
+            cam.Direction = new Vector3(
+                (float)(Math.Cos(pitch) * Math.Cos(yaw)),
+                (float)Math.Sin(pitch),
+                (float)(Math.Cos(pitch) * Math.Sin(yaw))
+            ).Normalized();
+
+            RefreshCameraUI();
+        }
+
+        /// <summary>
+        /// Перемещение камеры
+        /// </summary>
+        /// <param name="w">Нажата ли клавиша W</param>
+        /// <param name="a">Нажата ли клавиша A</param>
+        /// <param name="s">Нажата ли клавиша S</param>
+        /// <param name="d">Нажата ли клавиша D</param>
+        /// <param name="deltaTime">Пройденное время между кадрами</param>
+        public void MoveCamera(bool w, bool a, bool s, bool d, float deltaTime)
+        {
+            float speed = 3.0f * deltaTime;
+            Camera cam = _scene.MainCamera;
+
+            Vector3 forward = cam.Direction;
+            Vector3 right = Vector3.Cross(forward, cam.Up).Normalized();
+
+            bool moved = false;
+
+            if (w) { cam.Position += forward * speed; moved = true; }
+            if (s) { cam.Position -= forward * speed; moved = true; }
+            if (d) { cam.Position += right * speed; moved = true; }
+            if (a) { cam.Position -= right * speed; moved = true; }
+
+            if (moved) RefreshCameraUI();
+        }
+
+        /// <summary>
+        /// Обновление значение в интерфейсе при перемещении камеры
+        /// </summary>
+        private void RefreshCameraUI()
+        {
+            if (_view.SceneObjectsList.SelectedItem == _scene.MainCamera)
+            {
+                _isUpdatingUI = true;
+                var culture = System.Globalization.CultureInfo.InvariantCulture;
+
+                _view.PosX.Text = _scene.MainCamera.Position.X.ToString("0.00", culture);
+                _view.PosY.Text = _scene.MainCamera.Position.Y.ToString("0.00", culture);
+                _view.PosZ.Text = _scene.MainCamera.Position.Z.ToString("0.00", culture);
+
+                _view.DirX.Text = _scene.MainCamera.Direction.X.ToString("0.00", culture);
+                _view.DirY.Text = _scene.MainCamera.Direction.Y.ToString("0.00", culture);
+                _view.DirZ.Text = _scene.MainCamera.Direction.Z.ToString("0.00", culture);
+
+                _isUpdatingUI = false;
+            }
+        }
+
+        /// <summary>
         /// Обработка клика по объекту в списке
         /// </summary>
         /// <param name="selectedItem">Выделенный объект</param>
@@ -578,6 +654,12 @@ namespace RayTracer.Controllers
         private async void OnRenderClicked(object sender, RoutedEventArgs e)
         {
             if (!int.TryParse(_view.ResX.Text, out int width) || !int.TryParse(_view.ResY.Text, out int height)) return;
+
+            if(width < 1 || height < 1)
+            {
+                System.Windows.MessageBox.Show($"Неверно указано разрешение, задайте два НАТУРАЛЬНЫХ числа", "Ошибка", MessageBoxButton.OK, MessageBoxImage.Error);
+                return;
+            }
 
             int traceDepth = (int)_view.SliderTraceDepth.Value;
 

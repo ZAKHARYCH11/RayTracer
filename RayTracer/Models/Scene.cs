@@ -8,6 +8,7 @@
         private Camera _mainCamera;
         private List<SceneObject> _objects;
         private List<Light> _lights;
+        private Lightmap _lightmap;
         private byte[] _lightmapData;
         private int _lightmapWidth;
         private int _lightmapHeight;
@@ -37,6 +38,15 @@
         {
             get { return _lights; }
             set { _lights = value; }
+        }
+
+        /// <summary>
+        /// Световая карта
+        /// </summary>
+        public Lightmap Lightmap
+        {
+            get { return _lightmap; }
+            set { _lightmap = value; }
         }
 
         /// <summary>

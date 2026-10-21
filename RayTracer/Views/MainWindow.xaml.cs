@@ -5,6 +5,9 @@ using RayTracer.Controllers;
 using RayTracer.Models;
 using System;
 using System.Windows;
+using System.Windows.Input;
+using KeyEventArgs = System.Windows.Input.KeyEventArgs;
+using Point = System.Windows.Point;
 
 
 namespace RayTracer.Views
@@ -14,6 +17,10 @@ namespace RayTracer.Views
         private MainController _controller;
 
         private bool _isCommittingRename = false;
+
+        private bool _isRmbDown = false;
+        private bool _keyW, _keyA, _keyS, _keyD;
+        private Point _lastMousePos;
 
         /// <summary>
         /// Основной контроллер
@@ -89,6 +96,11 @@ namespace RayTracer.Views
                 }
             }
 
+            // 5. Движение камеры
+            if (_isRmbDown && Controller != null)
+            {
+                Controller.MoveCamera(_keyW, _keyA, _keyS, _keyD, (float)delta.TotalSeconds);
+            }
         }
 
         /// <summary>
@@ -475,6 +487,63 @@ namespace RayTracer.Views
 
             viewer.Show();
             viewer.Activate();
+        }
+
+        /// <summary>
+        /// Обработка нажатия кнопок
+        /// </summary>
+        private void Window_KeyDown(object sender, System.Windows.Input.KeyEventArgs e)
+        {
+            if (e.Key == System.Windows.Input.Key.W) _keyW = true;
+            if (e.Key == System.Windows.Input.Key.A) _keyA = true;
+            if (e.Key == System.Windows.Input.Key.S) _keyS = true;
+            if (e.Key == System.Windows.Input.Key.D) _keyD = true;
+        }
+
+        /// <summary>
+        /// Обработка отжатия кнопок
+        /// </summary>
+        private void Window_KeyUp(object sender, System.Windows.Input.KeyEventArgs e)
+        {
+            if (e.Key == System.Windows.Input.Key.W) _keyW = false;
+            if (e.Key == System.Windows.Input.Key.A) _keyA = false;
+            if (e.Key == System.Windows.Input.Key.S) _keyS = false;
+            if (e.Key == System.Windows.Input.Key.D) _keyD = false;
+        }
+
+        /// <summary>
+        /// Обработка нажатия ПКМ
+        /// </summary>
+        private void OpenGlControl_MouseRightButtonDown(object sender, System.Windows.Input.MouseButtonEventArgs e)
+        {
+            _isRmbDown = true;
+            _lastMousePos = e.GetPosition(null);
+            OpenGlControl.CaptureMouse();
+        }
+
+        /// <summary>
+        /// Обработка отжатия ПКМ
+        /// </summary>
+        private void OpenGlControl_MouseRightButtonUp(object sender, System.Windows.Input.MouseButtonEventArgs e)
+        {
+            _isRmbDown = false;
+            OpenGlControl.ReleaseMouseCapture();
+        }
+
+        /// <summary>
+        /// Обработка перемещения мыши
+        /// </summary>
+        private void OpenGlControl_MouseMove(object sender, System.Windows.Input.MouseEventArgs e)
+        {
+            if (_isRmbDown && Controller != null)
+            {
+                Point currentPos = e.GetPosition(null);
+                float deltaX = (float)(currentPos.X - _lastMousePos.X);
+                float deltaY = (float)(currentPos.Y - _lastMousePos.Y);
+                _lastMousePos = currentPos;
+
+                Controller.RotateCamera(deltaX, deltaY);
+            }
         }
     }
 }

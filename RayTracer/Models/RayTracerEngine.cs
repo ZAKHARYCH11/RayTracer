@@ -109,5 +109,10 @@ namespace RayTracer.Models
             float t = 0.5f * (ray.Direction.Y + 1.0f);
             return (1.0f - t) * new Vector3(1.0f, 1.0f, 1.0f) + t * new Vector3(0.5f, 0.7f, 1.0f);
         }
+
+        //private Vector3 Shade(Intersection hit, Vector3 viewDir, Scene scene, int  maxDepth, int depth)
+        //{
+
+        //}
     }
 }
