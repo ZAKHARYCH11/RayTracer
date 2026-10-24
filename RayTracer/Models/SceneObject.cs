@@ -11,6 +11,7 @@ namespace RayTracer.Models
         private Material _material;
         private string _name;
         private Vector3 _center;
+        private Lightmap _lightmap;
 
         /// <summary>
         /// Материал объекта
@@ -39,11 +40,46 @@ namespace RayTracer.Models
             set { _center = value; }
         }
 
+        /// <summary>
+        /// Световая карта объекта
+        /// </summary>
+        public Lightmap Lightmap
+        {
+            get { return _lightmap; }
+            set { _lightmap = value; }
+        }
+
         protected SceneObject(string name, Material material, Vector3 center)
         {
             _name = name;
             _material = material;
             _center = center;
+
+            _lightmap = GenerateDefaultLightmap();
+        }
+
+        /// <summary>
+        /// Генерирует черно-фиолетовую шахматную доску (текстура заглушка)
+        /// </summary>
+        private Lightmap GenerateDefaultLightmap()
+        {
+            int size = 64;
+            byte[] pixels = new byte[size * size * 3];
+
+            for (int y = 0; y < size; y++)
+            {
+                for (int x = 0; x < size; x++)
+                {
+                    int index = (y * size + x) * 3;
+                    bool isMagenta = ((x / 8) % 2) == ((y / 8) % 2);
+
+                    pixels[index] = isMagenta ? (byte)255 : (byte)0;     // R
+                    pixels[index + 1] = 0;                               // G
+                    pixels[index + 2] = isMagenta ? (byte)255 : (byte)0; // B
+                }
+            }
+
+            return new Lightmap(size, size, pixels);
         }
 
         /// <summary>

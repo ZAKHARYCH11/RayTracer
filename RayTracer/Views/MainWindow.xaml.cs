@@ -19,8 +19,10 @@ namespace RayTracer.Views
         private bool _isCommittingRename = false;
 
         private bool _isRmbDown = false;
-        private bool _keyW, _keyA, _keyS, _keyD;
+        private bool _keyW, _keyA, _keyS, _keyD, _keyShift;
         private Point _lastMousePos;
+
+        private System.Collections.Generic.Dictionary<SceneObject, int> _textureCache = new System.Collections.Generic.Dictionary<SceneObject, int>();
 
         /// <summary>
         /// Основной контроллер
@@ -38,7 +40,8 @@ namespace RayTracer.Views
             var settings = new GLWpfControlSettings
             {
                 MajorVersion = 2,
-                MinorVersion = 1
+                MinorVersion = 1,
+                RenderContinuously = true
             };
             OpenGlControl.Start(settings);
 
@@ -54,6 +57,10 @@ namespace RayTracer.Views
             // 1. Очистка экрана
             GL.ClearColor(0.15f, 0.15f, 0.15f, 1.0f);
             GL.Clear(ClearBufferMask.ColorBufferBit | ClearBufferMask.DepthBufferBit);
+
+            GL.Enable(EnableCap.DepthTest);
+            GL.Enable(EnableCap.CullFace);
+            GL.CullFace(CullFaceMode.Back);
 
             if (Controller == null || Controller.Scene == null) return;
 
@@ -76,158 +83,337 @@ namespace RayTracer.Views
             Matrix4 view = Matrix4.LookAt(cam.Position, cam.Position + cam.Direction, cam.Up);
             GL.LoadMatrix(ref view);
 
-            // 3. Отрисовка координатной сетки (пола)
+            // 3. Отрисовка координатной сетки
             DrawGrid();
 
             // 4. Отрисовка объектов сцены
+            bool isSolid = RadioSolid.IsChecked == true;
+
+            if (isSolid)
+                GL.Enable(EnableCap.Texture2D);
+
             foreach (var obj in Controller.Scene.Objects)
             {
+                int texId = 0;
+                if (isSolid)
+                {
+                    texId = GetOrLoadTexture(obj);
+                    GL.BindTexture(TextureTarget.Texture2D, texId);
+                }
+
                 if (obj is Sphere sphere)
-                {
-                    DrawWireframeSphere(sphere.Center, sphere.Radius, sphere.Material.Color);
-                }
+                    DrawSphere(sphere.Center, sphere.Radius, sphere.Material.Color, isSolid);
                 else if (obj is Cube cube)
-                {
-                    DrawWireframeCube(cube.Center, cube.Side, cube.Material.Color);
-                }
+                    DrawCube(cube.Center, cube.Side, cube.Material.Color, isSolid);
                 else if (obj is Cylinder cyl)
-                {
-                    DrawWireframeCylinder(cyl.Center, cyl.Radius, cyl.Height, cyl.Material.Color);
-                }
+                    DrawCylinder(cyl.Center, cyl.Radius, cyl.Height, cyl.Material.Color, isSolid);
             }
+
+            if (isSolid)
+                GL.Disable(EnableCap.Texture2D);
 
             // 5. Движение камеры
             if (_isRmbDown && Controller != null)
             {
-                Controller.MoveCamera(_keyW, _keyA, _keyS, _keyD, (float)delta.TotalSeconds);
+                Controller.MoveCamera(_keyW, _keyA, _keyS, _keyD, _keyShift, (float)delta.TotalSeconds);
             }
         }
 
         /// <summary>
-        /// Вспомогательный метод для отрисовки сетки (пола)
+        /// Отрисовка сетки
         /// </summary>
         private void DrawGrid()
         {
+            int gridSide = 100;
             GL.Color3(0.3f, 0.3f, 0.3f);
             GL.Begin(PrimitiveType.Lines);
-            for (int i = -10; i <= 10; i++)
+            for (int i = -gridSide; i <= gridSide; i++)
             {
-                GL.Vertex3(i, -0.5f, -10);
-                GL.Vertex3(i, -0.5f, 10);
-                GL.Vertex3(-10, -0.5f, i);
-                GL.Vertex3(10, -0.5f, i);
+                GL.Vertex3(i, -0.5f, -gridSide);
+                GL.Vertex3(i, -0.5f, gridSide);
+                GL.Vertex3(-gridSide, -0.5f, i);
+                GL.Vertex3(gridSide, -0.5f, i);
             }
             GL.End();
         }
 
         /// <summary>
-        /// Вспомогательный метод для отрисовки каркаса сферы
+        /// Отрисовка сферы
         /// </summary>
-        private void DrawWireframeSphere(Vector3 center, float radius, Vector3 color)
+        /// <param name="center">Координаты центра сферы</param>
+        /// <param name="radius">Радиус сферы</param>
+        /// <param name="color">Цвет сферы</param>
+        /// <param name="isSolid">Включен ли режим отображения световой карты</param>
+        private void DrawSphere(Vector3 center, float radius, Vector3 color, bool isSolid)
         {
-            GL.Color3(color.X, color.Y, color.Z);
-
             GL.PushMatrix();
-
             GL.Translate(center.X, center.Y, center.Z);
 
-            int rings = 12;
-            int sectors = 12;
+            int rings = 20;
+            int sectors = 20;
+
+            // Отрисовка каркаса
+            if (!isSolid)
+            {
+                GL.Color3(color.X, color.Y, color.Z);
+
+                for (int i = 0; i < rings; i++)
+                {
+                    float theta1 = (float)(i * Math.PI / rings);
+                    float theta2 = (float)((i + 1) * Math.PI / rings);
+
+                    GL.Begin(PrimitiveType.LineLoop);
+                    for (int j = 0; j <= sectors; j++)
+                    {
+                        float phi = (float)(j * 2 * Math.PI / sectors);
+
+                        float x = radius * (float)(Math.Sin(theta1) * Math.Cos(phi));
+                        float y = radius * (float)Math.Cos(theta1);
+                        float z = radius * (float)(Math.Sin(theta1) * Math.Sin(phi));
+
+                        GL.Vertex3(x, y, z);
+                    }
+                    GL.End();
+                }
+
+                GL.PopMatrix();
+                return;
+            }
+
+            // Отрисовка со световой картой
+
+            GL.Color3(1.0f, 1.0f, 1.0f);
 
             for (int i = 0; i < rings; i++)
             {
                 float theta1 = (float)(i * Math.PI / rings);
                 float theta2 = (float)((i + 1) * Math.PI / rings);
 
-                GL.Begin(PrimitiveType.LineLoop);
+                GL.Begin(PrimitiveType.QuadStrip);
                 for (int j = 0; j <= sectors; j++)
                 {
                     float phi = (float)(j * 2 * Math.PI / sectors);
 
-                    float x = radius * (float)(Math.Sin(theta1) * Math.Cos(phi));
-                    float y = radius * (float)Math.Cos(theta1);
-                    float z = radius * (float)(Math.Sin(theta1) * Math.Sin(phi));
+                    float u = (float)j / sectors;
+                    float v1 = (float)i / rings;
+                    float v2 = (float)(i + 1) / rings;
 
-                    GL.Vertex3(x, y, z);
+                    GL.TexCoord2(u, v2);
+                    GL.Vertex3(radius * Math.Sin(theta2) * Math.Cos(phi), radius * Math.Cos(theta2), radius * Math.Sin(theta2) * Math.Sin(phi));
+                    GL.TexCoord2(u, v1);
+                    GL.Vertex3(radius * Math.Sin(theta1) * Math.Cos(phi), radius * Math.Cos(theta1), radius * Math.Sin(theta1) * Math.Sin(phi));
+
+                    
                 }
                 GL.End();
             }
-
             GL.PopMatrix();
         }
 
         /// <summary>
-        /// Вспомогательный метод для отрисовки каркаса куба
+        /// Отрисовка куба
         /// </summary>
-        private void DrawWireframeCube(Vector3 center, float side, Vector3 color)
+        /// <param name="center">Координаты центра куба</param>
+        /// <param name="side">Длина стороны куба</param>
+        /// <param name="color">Цвет куба</param>
+        /// <param name="isSolid">Включен ли режим отображения световой карты</param>
+        private void DrawCube(Vector3 center, float side, Vector3 color, bool isSolid)
         {
-            GL.Color3(color.X, color.Y, color.Z);
             float half = side / 2.0f;
-
             GL.PushMatrix();
             GL.Translate(center.X, center.Y, center.Z);
 
-            GL.Begin(PrimitiveType.LineLoop);
-            GL.Vertex3(-half, -half, -half);
-            GL.Vertex3(half, -half, -half);
-            GL.Vertex3(half, half, -half);
-            GL.Vertex3(-half, half, -half);
-            GL.End();
+            // Отрисовка каркаса
+            if (!isSolid)
+            {
+                GL.Color3(color.X, color.Y, color.Z);
 
-            GL.Begin(PrimitiveType.LineLoop);
-            GL.Vertex3(-half, -half, half);
-            GL.Vertex3(half, -half, half);
-            GL.Vertex3(half, half, half);
-            GL.Vertex3(-half, half, half);
-            GL.End();
+                GL.Begin(PrimitiveType.LineLoop);
+                GL.Vertex3(-half, -half, -half);
+                GL.Vertex3(half, -half, -half);
+                GL.Vertex3(half, half, -half);
+                GL.Vertex3(-half, half, -half);
+                GL.End();
 
-            GL.Begin(PrimitiveType.Lines);
-            GL.Vertex3(-half, -half, -half); GL.Vertex3(-half, -half, half);
-            GL.Vertex3(half, -half, -half); GL.Vertex3(half, -half, half);
-            GL.Vertex3(half, half, -half); GL.Vertex3(half, half, half);
-            GL.Vertex3(-half, half, -half); GL.Vertex3(-half, half, half);
-            GL.End();
+                GL.Begin(PrimitiveType.LineLoop);
+                GL.Vertex3(-half, -half, half);
+                GL.Vertex3(half, -half, half);
+                GL.Vertex3(half, half, half);
+                GL.Vertex3(-half, half, half);
+                GL.End();
 
+                GL.Begin(PrimitiveType.Lines);
+                GL.Vertex3(-half, -half, -half); GL.Vertex3(-half, -half, half);
+                GL.Vertex3(half, -half, -half); GL.Vertex3(half, -half, half);
+                GL.Vertex3(half, half, -half); GL.Vertex3(half, half, half);
+                GL.Vertex3(-half, half, -half); GL.Vertex3(-half, half, half);
+                GL.End();
+                GL.PopMatrix();
+                return;
+            }
+
+            // Отрисоква со светиовой картой
+
+            GL.Color3(1.0f, 1.0f, 1.0f);
+
+            GL.Begin(PrimitiveType.Quads);
+
+            // Передняя грань
+            GL.TexCoord2(0, 0); GL.Vertex3(-half, -half, half);
+            GL.TexCoord2(1, 0); GL.Vertex3(half, -half, half);
+            GL.TexCoord2(1, 1); GL.Vertex3(half, half, half);
+            GL.TexCoord2(0, 1); GL.Vertex3(-half, half, half);
+          
+            // Задняя грань
+            GL.TexCoord2(0, 0); GL.Vertex3(half, -half, -half);
+            GL.TexCoord2(1, 0); GL.Vertex3(-half, -half, -half);
+            GL.TexCoord2(1, 1); GL.Vertex3(-half, half, -half);
+            GL.TexCoord2(0, 1); GL.Vertex3(half, half, -half);
+
+            // Верхняя грань
+            GL.TexCoord2(0, 0); GL.Vertex3(-half, half, half);
+            GL.TexCoord2(1, 0); GL.Vertex3(half, half, half);
+            GL.TexCoord2(1, 1); GL.Vertex3(half, half, -half);
+            GL.TexCoord2(0, 1); GL.Vertex3(-half, half, -half);
+
+            // Нижняя грань
+            GL.TexCoord2(0, 0); GL.Vertex3(-half, -half, -half);
+            GL.TexCoord2(1, 0); GL.Vertex3(half, -half, -half);
+            GL.TexCoord2(1, 1); GL.Vertex3(half, -half, half);
+            GL.TexCoord2(0, 1); GL.Vertex3(-half, -half, half);
+
+            // Правая грань
+            GL.TexCoord2(0, 0); GL.Vertex3(half, -half, half);
+            GL.TexCoord2(1, 0); GL.Vertex3(half, -half, -half);
+            GL.TexCoord2(1, 1); GL.Vertex3(half, half, -half);
+            GL.TexCoord2(0, 1); GL.Vertex3(half, half, half);
+
+            // Левая грань
+            GL.TexCoord2(0, 0); GL.Vertex3(-half, -half, -half);
+            GL.TexCoord2(1, 0); GL.Vertex3(-half, -half, half);
+            GL.TexCoord2(1, 1); GL.Vertex3(-half, half, half);
+            GL.TexCoord2(0, 1); GL.Vertex3(-half, half, -half);
+
+            GL.End();
             GL.PopMatrix();
         }
 
         /// <summary>
-        /// Вспомогательный метод для отрисовки каркаса цилиндра
+        /// Отрисовка цилиндра
         /// </summary>
-        private void DrawWireframeCylinder(Vector3 center, float radius, float height, Vector3 color)
+        /// <param name="center">Координаты центра цилиндра</param>
+        /// <param name="radius">Рабиус цилиндра</param>
+        /// <param name="height">Высота цилиндра</param>
+        /// <param name="color">Цвет цилиндра</param>
+        /// /// <param name="isSolid">Включен ли режим отображения световой карты</param>
+        private void DrawCylinder(Vector3 center, float radius, float height, Vector3 color, bool isSolid)
         {
-            GL.Color3(color.X, color.Y, color.Z);
             float halfHeight = height / 2.0f;
-            int segments = 16;
+            int segments = 20;
 
             GL.PushMatrix();
             GL.Translate(center.X, center.Y, center.Z);
 
-            for(int k = 0; k < 2; k++)
+            // Отрисовка каркаса
+            if (!isSolid)
             {
-                GL.Begin(PrimitiveType.LineLoop);
+                GL.Color3(color.X, color.Y, color.Z);
+
+                for (int k = 0; k < 2; k++)
+                {
+                    GL.Begin(PrimitiveType.LineLoop);
+                    for (int i = 0; i < segments; i++)
+                    {
+                        float theta = 2.0f * (float)Math.PI * i / segments;
+                        GL.Vertex3(radius * Math.Cos(theta), -halfHeight + height * k, radius * Math.Sin(theta));
+                    }
+                    GL.End();
+                }
+
+                GL.Begin(PrimitiveType.Lines);
                 for (int i = 0; i < segments; i++)
                 {
                     float theta = 2.0f * (float)Math.PI * i / segments;
+                    float x = (float)(radius * Math.Cos(theta));
+                    float z = (float)(radius * Math.Sin(theta));
+
+                    GL.Vertex3(x, halfHeight, z);
+                    GL.Vertex3(x, -halfHeight, z);
+                }
+                GL.End();
+                GL.PopMatrix();
+                return;
+            }
+
+            // Отрисовка со световой картой
+
+            GL.Color3(1.0f, 1.0f, 1.0f);
+
+            for (int k = 0; k < 2; k++)
+            {
+                GL.Begin(PrimitiveType.Polygon);
+                for (int i = 0; i < segments; i++)
+                {
+                    float theta;
+                    if(k == 0)
+                        theta = 2.0f * (float)Math.PI * i / segments;
+                    else
+                        theta = 2.0f * (float)Math.PI * (segments - i) / segments;
+
+                    float u = 0.5f + 0.5f * (float)Math.Cos(theta);
+                    float v = 0.5f + 0.5f * (float)Math.Sin(theta);
+
+                    GL.TexCoord2(u, v);
                     GL.Vertex3(radius * Math.Cos(theta), -halfHeight + height * k, radius * Math.Sin(theta));
                 }
                 GL.End();
             }
 
-            int verticalLines = segments / 2;
-            GL.Begin(PrimitiveType.Lines);
-            for (int i = 0; i < verticalLines; i++)
+            GL.Begin(PrimitiveType.QuadStrip);
+            for (int i = 0; i <= segments; i++)
             {
-                float theta = 2.0f * (float)Math.PI * i / verticalLines;
+                float theta = 2.0f * (float)Math.PI * i / segments;
                 float x = (float)(radius * Math.Cos(theta));
                 float z = (float)(radius * Math.Sin(theta));
 
-                GL.Vertex3(x, halfHeight, z);
+                float u = (float)i / segments;
+
+                GL.TexCoord2(u, 1);
                 GL.Vertex3(x, -halfHeight, z);
+                GL.TexCoord2(u, 0);
+                GL.Vertex3(x, halfHeight, z);
             }
             GL.End();
 
+
             GL.PopMatrix();
+        }
+
+        /// <summary>
+        /// Загрузка световой карты в видеокарту
+        /// </summary>
+        /// <param name="obj">Объект сцены</param>
+        /// <returns>ID текстуры OpenGL</returns>
+        private int GetOrLoadTexture(SceneObject obj)
+        {
+            if (obj.Lightmap == null) return 0;
+
+            if (_textureCache.ContainsKey(obj))
+                return _textureCache[obj];
+
+            int textureId = GL.GenTexture();
+
+            GL.BindTexture(TextureTarget.Texture2D, textureId);
+
+            GL.TexParameter(TextureTarget.Texture2D, TextureParameterName.TextureMinFilter, (int)TextureMinFilter.Nearest);
+            GL.TexParameter(TextureTarget.Texture2D, TextureParameterName.TextureMagFilter, (int)TextureMagFilter.Nearest);
+
+            GL.TexImage2D(TextureTarget.Texture2D, 0, PixelInternalFormat.Rgb,
+                          obj.Lightmap.Width, obj.Lightmap.Height, 0,
+                          PixelFormat.Rgb, PixelType.UnsignedByte, obj.Lightmap.Pixels);
+
+            _textureCache.Add(obj, textureId);
+            return textureId;
         }
 
         /// <summary>
@@ -498,6 +684,7 @@ namespace RayTracer.Views
             if (e.Key == System.Windows.Input.Key.A) _keyA = true;
             if (e.Key == System.Windows.Input.Key.S) _keyS = true;
             if (e.Key == System.Windows.Input.Key.D) _keyD = true;
+            if (e.Key == System.Windows.Input.Key.LeftShift) _keyShift = true;
         }
 
         /// <summary>
@@ -509,6 +696,7 @@ namespace RayTracer.Views
             if (e.Key == System.Windows.Input.Key.A) _keyA = false;
             if (e.Key == System.Windows.Input.Key.S) _keyS = false;
             if (e.Key == System.Windows.Input.Key.D) _keyD = false;
+            if (e.Key == System.Windows.Input.Key.LeftShift) _keyShift = false;
         }
 
         /// <summary>

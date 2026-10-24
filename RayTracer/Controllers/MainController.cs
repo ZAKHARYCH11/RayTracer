@@ -46,7 +46,7 @@ namespace RayTracer.Controllers
             _scene.MainCamera = new Camera("Камера", new Vector3(0, 0, 1.5f), new Vector3(0, 0, -1), new Vector3(0, 1, 0), 60f);
 
             var floorMaterial = new Material(new Vector3(0.5f, 0.5f, 0.5f), 0.1f);
-            _scene.Objects.Add(new Sphere("Пол", new Vector3(0, -100.5f, -1), 100f, floorMaterial));
+            _scene.Objects.Add(new Cube("Пол", new Vector3(0, -50.5f, 0), 100f, floorMaterial));
 
             var redMat = new Material(new Vector3(0.8f, 0.2f, 0.2f), 0.0f);
             _scene.Objects.Add(new Sphere("Красная сфера", new Vector3(0, 0, -1), 0.5f, redMat));
@@ -319,10 +319,13 @@ namespace RayTracer.Controllers
         /// <param name="a">Нажата ли клавиша A</param>
         /// <param name="s">Нажата ли клавиша S</param>
         /// <param name="d">Нажата ли клавиша D</param>
+        /// <param name="shift">Нажата ли клавиша Shift</param>
         /// <param name="deltaTime">Пройденное время между кадрами</param>
-        public void MoveCamera(bool w, bool a, bool s, bool d, float deltaTime)
+        public void MoveCamera(bool w, bool a, bool s, bool d, bool shift, float deltaTime)
         {
-            float speed = 3.0f * deltaTime;
+            float speed = 2.0f * deltaTime;
+            if (shift) speed *= 2.0f;
+
             Camera cam = _scene.MainCamera;
 
             Vector3 forward = cam.Direction;
