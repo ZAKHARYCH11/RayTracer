@@ -12,6 +12,7 @@ namespace RayTracer.Models
         private string _name;
         private Vector3 _center;
         private Lightmap _lightmap;
+        private int _lightmapRes;
 
         /// <summary>
         /// Материал объекта
@@ -49,13 +50,23 @@ namespace RayTracer.Models
             set { _lightmap = value; }
         }
 
-        protected SceneObject(string name, Material material, Vector3 center)
+        /// <summary>
+        /// Разрешение световой карты
+        /// </summary>
+        public int LightmapRes
+        {
+            get { return _lightmapRes; }
+            set { _lightmapRes = value; }
+        }
+
+        protected SceneObject(string name, Material material, Vector3 center, int lightmapRes = 256)
         {
             _name = name;
             _material = material;
             _center = center;
 
             _lightmap = GenerateDefaultLightmap();
+            _lightmapRes = lightmapRes;
         }
 
         /// <summary>
@@ -97,16 +108,14 @@ namespace RayTracer.Models
         public abstract SceneObject Clone();
 
         /// <summary>
-        /// Получение точки на поверхности
+        /// Перевод 2D координат тектуры в 3D точку на поверхности и ее нормаль
         /// </summary>
         /// <param name="u">Координата u</param>
         /// <param name="v">Координата v</param>
         /// <param name="point">Точка поверхности</param>
         /// <param name="normal">Нормаль к точке</param>
-        /// <returns></returns>
-        //public abstract bool TryGetSurfacePoint(float u, float v, out Vector3 point, out Vector3 normal);
-
-        ///public abstract MeshData BuildMesh(int detail);
+        /// <returns>true, если перевод успешный</returns>
+        public abstract bool TryGetSurfaceData(float u, float v, out Vector3 posiotion, out Vector3 normal);
 
         public override string ToString()
         {

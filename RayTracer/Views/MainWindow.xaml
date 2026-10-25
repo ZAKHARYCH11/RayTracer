@@ -169,6 +169,9 @@
                             </StackPanel>
 
                             <StackPanel x:Name="PanelMaterial" Visibility="Collapsed">
+                                <TextBlock Text="Разрешение световой карты:"/>
+                                <TextBox x:Name="ObjResolution" Text="256" Margin="0,5,0,15" TextChanged="Properties_Changed"/>
+                                
                                 <TextBlock Text="Зеркальность:"/>
                                 <Grid Margin="0,5,0,15">
                                     <Grid.ColumnDefinitions>
@@ -207,14 +210,7 @@
                                 <RadioButton x:Name="RadioWireframe" Content="Каркас" IsChecked="True" Foreground="{StaticResource TextColor}" Margin="0,0,10,0"/>
                                 <RadioButton x:Name="RadioSolid" Content="Световые карты" Foreground="{StaticResource TextColor}"/>
                             </StackPanel>
-
-                            <TextBlock Text="Разрешение световой карты:"/>
-                            <StackPanel Orientation="Horizontal" Margin="0,5,0,15">
-                                <TextBox x:Name="ResX" Text="256" Width="50" HorizontalContentAlignment="Center"/>
-                                <TextBlock Text=" x " VerticalAlignment="Center"/>
-                                <TextBox x:Name="ResY" Text="256" Width="50" HorizontalContentAlignment="Center"/>
-                            </StackPanel>
-
+                            
                             <TextBlock Text="Глубина трассировки:"/>
                             <Grid Margin="0,5,0,15" Height="28">
                                 <Grid.ColumnDefinitions>

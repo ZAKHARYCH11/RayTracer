@@ -18,7 +18,7 @@ namespace RayTracer.Models
             set { _radius = value; }
         }
 
-        public Sphere(string name, Vector3 center, float radius, Material material) : base(name, material, center)
+        public Sphere(string name, Vector3 center, float radius, Material material, int lightmapRes = 256) : base(name, material, center, lightmapRes)
         {
             _radius = radius;
         }
@@ -67,7 +67,22 @@ namespace RayTracer.Models
 
         public override SceneObject Clone()
         {
-            return new Sphere(Name, Center, _radius, Material.Clone());
+            return new Sphere(Name, Center, _radius, Material.Clone(), LightmapRes);
+        }
+
+        public override bool TryGetSurfaceData(float u, float v, out Vector3 position, out Vector3 normal)
+        {
+            float phi = u * 2.0f * (float)Math.PI;
+            float theta = v * (float)Math.PI;
+
+            float nx = (float)(Math.Sin(theta) * Math.Cos(phi));
+            float ny = (float)Math.Cos(theta);
+            float nz = (float)(Math.Sin(theta) * Math.Sin(phi));
+
+            normal = new Vector3(nx, ny, nz).Normalized();
+
+            position = Center + normal * _radius;
+            return true;
         }
     }
 }

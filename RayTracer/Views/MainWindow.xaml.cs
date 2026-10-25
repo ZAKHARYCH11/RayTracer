@@ -6,6 +6,8 @@ using RayTracer.Models;
 using System;
 using System.Windows;
 using System.Windows.Input;
+using System.Collections.Generic;
+
 using KeyEventArgs = System.Windows.Input.KeyEventArgs;
 using Point = System.Windows.Point;
 
@@ -22,7 +24,7 @@ namespace RayTracer.Views
         private bool _keyW, _keyA, _keyS, _keyD, _keyShift;
         private Point _lastMousePos;
 
-        private System.Collections.Generic.Dictionary<SceneObject, int> _textureCache = new System.Collections.Generic.Dictionary<SceneObject, int>();
+        private Dictionary<SceneObject, int> _textureCache = new Dictionary<SceneObject, int>();
 
         /// <summary>
         /// Основной контроллер
@@ -54,15 +56,11 @@ namespace RayTracer.Views
         /// <param name="delta">Пройденное время между кадрами</param>
         private void OpenGlControl_Render(TimeSpan delta)
         {
+            if (Controller == null || Controller.Scene == null) return;
+
             // 1. Очистка экрана
             GL.ClearColor(0.15f, 0.15f, 0.15f, 1.0f);
             GL.Clear(ClearBufferMask.ColorBufferBit | ClearBufferMask.DepthBufferBit);
-
-            GL.Enable(EnableCap.DepthTest);
-            GL.Enable(EnableCap.CullFace);
-            GL.CullFace(CullFaceMode.Back);
-
-            if (Controller == null || Controller.Scene == null) return;
 
             // 2. Настройка виртуальной камеры OpenGL
             Camera cam = Controller.Scene.MainCamera;
@@ -83,10 +81,17 @@ namespace RayTracer.Views
             Matrix4 view = Matrix4.LookAt(cam.Position, cam.Position + cam.Direction, cam.Up);
             GL.LoadMatrix(ref view);
 
-            // 3. Отрисовка координатной сетки
-            DrawGrid();
+            // 3. Отрисовка заденго фона (неба)
+            if (Controller.Scene.Skybox != null)
+            {
+                DrawSkybox(cam.Position, Controller.Scene.Skybox);
+            }
 
             // 4. Отрисовка объектов сцены
+            GL.Enable(EnableCap.DepthTest);
+            GL.Enable(EnableCap.CullFace);
+            GL.CullFace(CullFaceMode.Back);
+
             bool isSolid = RadioSolid.IsChecked == true;
 
             if (isSolid)
@@ -112,11 +117,70 @@ namespace RayTracer.Views
             if (isSolid)
                 GL.Disable(EnableCap.Texture2D);
 
-            // 5. Движение камеры
+            // 5. Отрисовка координатной сетки
+            if (!isSolid)
+                DrawGrid();
+
+            // 6. Движение камеры
             if (_isRmbDown && Controller != null)
             {
                 Controller.MoveCamera(_keyW, _keyA, _keyS, _keyD, _keyShift, (float)delta.TotalSeconds);
             }
+        }
+
+        /// <summary>
+        /// Отрисовка фона сцены (неба)
+        /// </summary>
+        /// <param name="cameraPosition">Положение камеры</param>
+        /// <param name="sky">Скайбокс</param>
+        private void DrawSkybox(Vector3 cameraPosition, Skybox sky)
+        {
+            GL.Disable(EnableCap.DepthTest);
+            GL.Disable(EnableCap.CullFace);
+            GL.DepthMask(false);
+
+            GL.PushMatrix();
+
+            GL.Translate(cameraPosition.X, cameraPosition.Y, cameraPosition.Z);
+
+            float radius = 10.0f;
+            int rings = 16, sectors = 16;
+
+            for (int i = 0; i < rings; i++)
+            {
+                float theta1 = (float)(i * Math.PI / rings);
+                float theta2 = (float)((i + 1) * Math.PI / rings);
+
+                GL.Begin(PrimitiveType.QuadStrip);
+                for (int j = 0; j <= sectors; j++)
+                {
+                    float phi = (float)(j * 2 * Math.PI / sectors);
+
+                    float nx1 = (float)(Math.Sin(theta1) * Math.Cos(phi));
+                    float ny1 = (float)Math.Cos(theta1);
+                    float nz1 = (float)(Math.Sin(theta1) * Math.Sin(phi));
+
+                    float t1 = 0.5f * (ny1 + 1.0f);
+                    Vector3 c1 = (1.0f - t1) * sky.ColorBottom + t1 * sky.ColorTop;
+
+                    GL.Color3(c1.X, c1.Y, c1.Z);
+                    GL.Vertex3(radius * nx1, radius * ny1, radius * nz1);
+
+                    float nx2 = (float)(Math.Sin(theta2) * Math.Cos(phi));
+                    float ny2 = (float)Math.Cos(theta2);
+                    float nz2 = (float)(Math.Sin(theta2) * Math.Sin(phi));
+
+                    float t2 = 0.5f * (ny2 + 1.0f);
+                    Vector3 c2 = (1.0f - t2) * sky.ColorBottom + t2 * sky.ColorTop;
+
+                    GL.Color3(c2.X, c2.Y, c2.Z);
+                    GL.Vertex3(radius * nx2, radius * ny2, radius * nz2);
+                }
+                GL.End();
+            }
+
+            GL.PopMatrix();
+            GL.DepthMask(true);
         }
 
         /// <summary>
@@ -211,6 +275,22 @@ namespace RayTracer.Views
         }
 
         /// <summary>
+        /// Вспомогательный метод длявыбора точки текстуры для куба
+        /// </summary>
+        /// <param name="col">Столбец текстуры</param>
+        /// <param name="row">Строка текстуры</param>
+        /// <param name="u">Координата u</param>
+        /// <param name="v">Координата v</param>
+        private void Tex(int col, int row, float u, float v)
+        {
+            float pad = 0.01f;
+            float localU = u * (1.0f - 2 * pad) + pad;
+            float localV = v * (1.0f - 2 * pad) + pad;
+
+            GL.TexCoord2((col + localU) / 3.0f, (row + localV) / 2.0f);
+        }
+
+        /// <summary>
         /// Отрисовка куба
         /// </summary>
         /// <param name="center">Координаты центра куба</param>
@@ -259,40 +339,40 @@ namespace RayTracer.Views
             GL.Begin(PrimitiveType.Quads);
 
             // Передняя грань
-            GL.TexCoord2(0, 0); GL.Vertex3(-half, -half, half);
-            GL.TexCoord2(1, 0); GL.Vertex3(half, -half, half);
-            GL.TexCoord2(1, 1); GL.Vertex3(half, half, half);
-            GL.TexCoord2(0, 1); GL.Vertex3(-half, half, half);
-          
+            Tex(0, 0, 0, 1); GL.Vertex3(-half, -half, half);
+            Tex(0, 0, 1, 1); GL.Vertex3(half, -half, half);
+            Tex(0, 0, 1, 0); GL.Vertex3(half, half, half);
+            Tex(0, 0, 0, 0); GL.Vertex3(-half, half, half);
+
             // Задняя грань
-            GL.TexCoord2(0, 0); GL.Vertex3(half, -half, -half);
-            GL.TexCoord2(1, 0); GL.Vertex3(-half, -half, -half);
-            GL.TexCoord2(1, 1); GL.Vertex3(-half, half, -half);
-            GL.TexCoord2(0, 1); GL.Vertex3(half, half, -half);
+            Tex(1, 0, 0, 1); GL.Vertex3(half, -half, -half);
+            Tex(1, 0, 1, 1); GL.Vertex3(-half, -half, -half);
+            Tex(1, 0, 1, 0); GL.Vertex3(-half, half, -half);
+            Tex(1, 0, 0, 0); GL.Vertex3(half, half, -half);
 
             // Верхняя грань
-            GL.TexCoord2(0, 0); GL.Vertex3(-half, half, half);
-            GL.TexCoord2(1, 0); GL.Vertex3(half, half, half);
-            GL.TexCoord2(1, 1); GL.Vertex3(half, half, -half);
-            GL.TexCoord2(0, 1); GL.Vertex3(-half, half, -half);
+            Tex(2, 0, 0, 1); GL.Vertex3(-half, half, half);
+            Tex(2, 0, 1, 1); GL.Vertex3(half, half, half);
+            Tex(2, 0, 1, 0); GL.Vertex3(half, half, -half);
+            Tex(2, 0, 0, 0); GL.Vertex3(-half, half, -half);
 
             // Нижняя грань
-            GL.TexCoord2(0, 0); GL.Vertex3(-half, -half, -half);
-            GL.TexCoord2(1, 0); GL.Vertex3(half, -half, -half);
-            GL.TexCoord2(1, 1); GL.Vertex3(half, -half, half);
-            GL.TexCoord2(0, 1); GL.Vertex3(-half, -half, half);
+            Tex(0, 1, 0, 1); GL.Vertex3(-half, -half, -half);
+            Tex(0, 1, 1, 1); GL.Vertex3(half, -half, -half);
+            Tex(0, 1, 1, 0); GL.Vertex3(half, -half, half);
+            Tex(0, 1, 0, 0); GL.Vertex3(-half, -half, half);
 
             // Правая грань
-            GL.TexCoord2(0, 0); GL.Vertex3(half, -half, half);
-            GL.TexCoord2(1, 0); GL.Vertex3(half, -half, -half);
-            GL.TexCoord2(1, 1); GL.Vertex3(half, half, -half);
-            GL.TexCoord2(0, 1); GL.Vertex3(half, half, half);
+            Tex(1, 1, 0, 1); GL.Vertex3(half, -half, half);
+            Tex(1, 1, 1, 1); GL.Vertex3(half, -half, -half);
+            Tex(1, 1, 1, 0); GL.Vertex3(half, half, -half);
+            Tex(1, 1, 0, 0); GL.Vertex3(half, half, half);
 
             // Левая грань
-            GL.TexCoord2(0, 0); GL.Vertex3(-half, -half, -half);
-            GL.TexCoord2(1, 0); GL.Vertex3(-half, -half, half);
-            GL.TexCoord2(1, 1); GL.Vertex3(-half, half, half);
-            GL.TexCoord2(0, 1); GL.Vertex3(-half, half, -half);
+            Tex(2, 1, 0, 1); GL.Vertex3(-half, -half, -half);
+            Tex(2, 1, 1, 1); GL.Vertex3(-half, -half, half);
+            Tex(2, 1, 1, 0); GL.Vertex3(-half, half, half);
+            Tex(2, 1, 0, 0); GL.Vertex3(-half, half, -half);
 
             GL.End();
             GL.PopMatrix();
@@ -363,7 +443,11 @@ namespace RayTracer.Views
                     float u = 0.5f + 0.5f * (float)Math.Cos(theta);
                     float v = 0.5f + 0.5f * (float)Math.Sin(theta);
 
-                    GL.TexCoord2(u, v);
+                    if (k == 1)
+                        GL.TexCoord2(0.5f + u * 0.5f, v * 0.5f);
+                    else
+                        GL.TexCoord2(0.5f + u * 0.5f, 0.5f + v * 0.5f);
+
                     GL.Vertex3(radius * Math.Cos(theta), -halfHeight + height * k, radius * Math.Sin(theta));
                 }
                 GL.End();
@@ -376,11 +460,11 @@ namespace RayTracer.Views
                 float x = (float)(radius * Math.Cos(theta));
                 float z = (float)(radius * Math.Sin(theta));
 
-                float u = (float)i / segments;
+                float u = ((float)i / segments) * 0.5f;
 
-                GL.TexCoord2(u, 1);
+                GL.TexCoord2(u, 1.0f);
                 GL.Vertex3(x, -halfHeight, z);
-                GL.TexCoord2(u, 0);
+                GL.TexCoord2(u, 0.0f);
                 GL.Vertex3(x, halfHeight, z);
             }
             GL.End();
@@ -414,6 +498,18 @@ namespace RayTracer.Views
 
             _textureCache.Add(obj, textureId);
             return textureId;
+        }
+
+        /// <summary>
+        /// Очистка кэша текстур
+        /// </summary>
+        public void ClearTextureCache()
+        {
+            foreach (var texId in _textureCache.Values)
+            {
+                GL.DeleteTexture(texId);
+            }
+            _textureCache.Clear();
         }
 
         /// <summary>

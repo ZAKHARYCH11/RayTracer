@@ -43,10 +43,12 @@ namespace RayTracer.Controllers
         /// </summary>
         public void InitializeStartScene()
         {
-            _scene.MainCamera = new Camera("Камера", new Vector3(0, 0, 1.5f), new Vector3(0, 0, -1), new Vector3(0, 1, 0), 60f);
+            _scene.Skybox = new Skybox(new Vector3(0.5f, 0.7f, 1.0f), new Vector3(0.1f, 0.1f, 0.1f));
+
+            _scene.MainCamera = new Camera("Камера", new Vector3(0, 0, 1.5f), new Vector3(0, 0, -1), new Vector3(0, 1, 0), 75f);
 
             var floorMaterial = new Material(new Vector3(0.5f, 0.5f, 0.5f), 0.1f);
-            _scene.Objects.Add(new Cube("Пол", new Vector3(0, -50.5f, 0), 100f, floorMaterial));
+            _scene.Objects.Add(new Cube("Пол", new Vector3(0, -5.5f, 0), 10f, floorMaterial, 4096));
 
             var redMat = new Material(new Vector3(0.8f, 0.2f, 0.2f), 0.0f);
             _scene.Objects.Add(new Sphere("Красная сфера", new Vector3(0, 0, -1), 0.5f, redMat));
@@ -265,8 +267,6 @@ namespace RayTracer.Controllers
 
                         if (_scene.LightmapData != null && _scene.LightmapData.Length > 0)
                         {
-                            _view.ResX.Text = _scene.LightmapWidth.ToString();
-                            _view.ResY.Text = _scene.LightmapHeight.ToString();
                             DisplayImage(_scene.LightmapData, _scene.LightmapWidth, _scene.LightmapHeight);
                         }
                         else
@@ -404,8 +404,12 @@ namespace RayTracer.Controllers
 
                 _view.PanelMaterial.Visibility = Visibility.Visible;
                 _view.PanelColor.Visibility = Visibility.Visible;
+
                 _view.SliderReflectivity.Value = obj.Material.Reflectivity;
                 _view.Reflectivity.Text = obj.Material.Reflectivity.ToString("0.00", culture);
+
+                _view.ObjResolution.Text = obj.LightmapRes.ToString();
+
                 UpdateColorButtonUI(obj.Material.Color);
 
                 if (obj is Sphere sphere)
@@ -424,6 +428,8 @@ namespace RayTracer.Controllers
                     _view.CylRadius.Text = cyl.Radius.ToString("0.00", culture);
                     _view.Height.Text = cyl.Height.ToString("0.00", culture);
                 }
+
+                ShowLightmapPreview();
             }
             else if (selectedItem is Light light)
             {
@@ -502,6 +508,9 @@ namespace RayTracer.Controllers
             float.TryParse(_view.Reflectivity.Text.Replace(',', '.'), style, culture, out float reflectiviti);
             reflectiviti = Math.Clamp(reflectiviti, 0f, 1f);
 
+            int.TryParse(_view.ObjResolution.Text, out int lightmapRes);
+            lightmapRes = Math.Clamp(lightmapRes, 16, 8192);
+
             float.TryParse(_view.FOV.Text.Replace(',', '.'), style, culture, out float fov);
             fov = Math.Clamp(fov, 1f, 179.99f);
 
@@ -516,6 +525,8 @@ namespace RayTracer.Controllers
             }
             else if (selectedItem is SceneObject obj)
             {
+                obj.LightmapRes = lightmapRes;
+
                 obj.Center = newPosiotion;
                 if(obj is Sphere sphere)
                     sphere.Radius = radius;
@@ -656,36 +667,28 @@ namespace RayTracer.Controllers
         /// </summary>
         private async void OnRenderClicked(object sender, RoutedEventArgs e)
         {
-            if (!int.TryParse(_view.ResX.Text, out int width) || !int.TryParse(_view.ResY.Text, out int height)) return;
-
-            if(width < 1 || height < 1)
-            {
-                System.Windows.MessageBox.Show($"Неверно указано разрешение, задайте два НАТУРАЛЬНЫХ числа", "Ошибка", MessageBoxButton.OK, MessageBoxImage.Error);
-                return;
-            }
-
             int traceDepth = (int)_view.SliderTraceDepth.Value;
 
             _view.BtnRender.IsEnabled = false;
-            _view.StatusText.Text = $"Рендеринг ({width}x{height})... Пожалуйста, подождите.";
+            _view.StatusText.Text = $"Запекание световых карт... Пожалуйста, подождите.";
 
-            _scene.MainCamera.CalculateVectors((float)width / height);
+            _scene.MainCamera.CalculateVectors(1.0f);
+
+            Vector3 cameraPosition = _scene.MainCamera.Position;
 
             Stopwatch sw = Stopwatch.StartNew();
 
-            byte[] pixelData = await Task.Run(() => _engine.RenderView(_scene, _scene.MainCamera, width, height, traceDepth));
+            await Task.Run(() => _engine.BakeLightmaps(_scene, traceDepth, cameraPosition));
 
             sw.Stop();
 
-            _scene.LightmapData = pixelData;
-            _scene.LightmapWidth = width;
-            _scene.LightmapHeight = height;
-
-            DisplayImage(pixelData, width, height);
+            _view.ClearTextureCache();
+            _view.RadioSolid.IsChecked = true;
+            ShowLightmapPreview();
 
             _view.BtnRender.IsEnabled = true;
             _view.StatusText.Text = "Готов к работе";
-            _view.RenderTimeText.Text = $"Время рендеринга: {sw.ElapsedMilliseconds / 1000.0:F2} с";
+            _view.RenderTimeText.Text = $"Время запекания: {sw.ElapsedMilliseconds / 1000.0:F2} с";
         }
 
         /// <summary>
@@ -702,6 +705,26 @@ namespace RayTracer.Controllers
                 PixelFormats.Rgb24, null, pixelData, stride);
 
             _view.LightmapPreviewImage.Source = bitmap;
+        }
+
+        /// <summary>
+        /// Выводит световую карту выделенного объекта в правое окно
+        /// </summary>
+        public void ShowLightmapPreview()
+        {
+            if (_view.SceneObjectsList.SelectedItem is SceneObject obj && obj.Lightmap != null)
+            {
+                int stride = obj.Lightmap.Width * 3;
+                BitmapSource bitmap = BitmapSource.Create(
+                    obj.Lightmap.Width, obj.Lightmap.Height, 96, 96,
+                    PixelFormats.Rgb24, null, obj.Lightmap.Pixels, stride);
+
+                _view.LightmapPreviewImage.Source = bitmap;
+            }
+            else
+            {
+                _view.LightmapPreviewImage.Source = null;
+            }
         }
 
         /// <summary>

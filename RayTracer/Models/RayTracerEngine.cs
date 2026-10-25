@@ -1,5 +1,7 @@
-﻿using System.Threading.Tasks;
-using OpenTK.Mathematics;
+﻿using OpenTK.Mathematics;
+using OpenTK.Windowing.Common.Input;
+using System.Threading.Tasks;
+using System.Windows.Forms;
 
 namespace RayTracer.Models
 {
@@ -52,21 +54,17 @@ namespace RayTracer.Models
         /// <returns>Цвет пикселя</returns>
         private Vector3 TraceRay(Ray ray, Scene scene, int maxDepth, int currentDepth)
         {
-            // Превышена максимальная глубина трассировки
             if (currentDepth >= maxDepth)
                 return Vector3.Zero;
 
-            // Есть пересечение с объектом
             if (scene.RayCast(ray, out Intersection hit))
             {
                 Material mat = hit.Object.Material;
                 Vector3 finalColor = Vector3.Zero;
 
-                // 1. Базовое освещение
                 Vector3 ambient = mat.Color * 0.15f;
                 finalColor += ambient;
 
-                // Цикл по всем источникам света на сцене
                 foreach (var light in scene.Lights)
                 {
                     float currentIntensity = light.GetIntensityAt(hit.Point);
@@ -75,14 +73,11 @@ namespace RayTracer.Models
                     {
                         Vector3 lightDir = light.GetDirectionToLight(hit.Point);
 
-                        // 2. Проверка теней (Shadow Ray)
                         Vector3 shadowOrigin = hit.Point + hit.Normal * 0.001f;
                         Ray shadowRay = new Ray(shadowOrigin, lightDir);
 
-                        // Проверяем, не перекрыт ли свет
                         if (!scene.RayCast(shadowRay, out Intersection shadowHit) || shadowHit.Distance > light.GetDistanceToLight(hit.Point))
                         {
-                            // Освещение по Ламберту (Diffuse)
                             float diff = Math.Max(Vector3.Dot(hit.Normal, lightDir), 0.0f);
                             Vector3 diffuse = mat.Color * light.Color * currentIntensity * diff;
                             finalColor += diffuse;
@@ -90,7 +85,6 @@ namespace RayTracer.Models
                     }
                 }
 
-                // 3. Зеркальное отражение
                 if (mat.Reflectivity > 0.0f)
                 {
                     Vector3 shadowOrigin = hit.Point + hit.Normal * 0.001f;
@@ -105,14 +99,93 @@ namespace RayTracer.Models
                 return finalColor;
             }
 
-            // Луч улетел в путоту
-            float t = 0.5f * (ray.Direction.Y + 1.0f);
-            return (1.0f - t) * new Vector3(1.0f, 1.0f, 1.0f) + t * new Vector3(0.5f, 0.7f, 1.0f);
+            return scene.Skybox.GetColor(ray.Direction);
         }
 
-        //private Vector3 Shade(Intersection hit, Vector3 viewDir, Scene scene, int  maxDepth, int depth)
-        //{
+        /// <summary>
+        /// Генерация световых карт для всех объектов
+        /// </summary>
+        /// <param name="scene">Сцена</param>
+        /// <param name="maxDepth">Глубина трассировки</param>
+        public void BakeLightmaps(Scene scene, int maxDepth, Vector3 cameraPosition)
+        {
+            foreach (var obj in scene.Objects)
+            {
+                int res = obj.LightmapRes;
+                byte[] pixels = new byte[res * res * 3];
 
-        //}
+                Parallel.For(0, res, y =>
+                {
+                    for (int x = 0; x < res; x++)
+                    {
+                        float u = (float)x / (res - 1);
+                        float v = (float)y / (res - 1);
+
+                        if (obj.TryGetSurfaceData(u, v, out Vector3 pos, out Vector3 normal))
+                        {
+                            Vector3 color = CalculateBakeColor(scene, obj, pos, normal, maxDepth, 0, cameraPosition);
+
+                            int index = (y * res + x) * 3;
+                            pixels[index] = (byte)(Math.Clamp(color.X, 0f, 1f) * 255);     // R
+                            pixels[index + 1] = (byte)(Math.Clamp(color.Y, 0f, 1f) * 255); // G
+                            pixels[index + 2] = (byte)(Math.Clamp(color.Z, 0f, 1f) * 255); // B
+                        }
+                    }
+                });
+
+                obj.Lightmap = new Lightmap(res, res, pixels);
+            }
+        }
+
+        /// <summary>
+        /// Рассчет освещения для одной точки поверхности объекта
+        /// </summary>
+        /// <param name="scene">Сцена</param>
+        /// <param name="targetObj">Объект, для которого рассчитывается освещение</param>
+        /// <param name="point">Точка, для которой рассчитывается освещение</param>
+        /// <param name="normal">Нормаль к точке</param>
+        /// <param name="maxDepth">Глубина трассировки</param>
+        /// <param name="currentDepth">Текущая глубина</param>
+        /// <param name="cameraPosition">Положение камеры</param>
+        private Vector3 CalculateBakeColor(Scene scene, SceneObject targetObj, Vector3 point, Vector3 normal, int maxDepth, int currentDepth, Vector3 cameraPosition)
+        {
+            if (currentDepth >= maxDepth) return Vector3.Zero;
+
+            Vector3 finalColor = targetObj.Material.Color * 0.15f;
+
+            foreach (var light in scene.Lights)
+            {
+                float intensity = light.GetIntensityAt(point);
+
+                if (intensity > 0)
+                {
+                    Vector3 lightDir = light.GetDirectionToLight(point);
+                    Vector3 shadowOrigin = point + normal * 0.001f;
+                    Ray shadowRay = new Ray(shadowOrigin, lightDir);
+
+                    if (!scene.RayCast(shadowRay, out Intersection hit) || hit.Distance > light.GetDistanceToLight(point))
+                    {
+                        float diff = Math.Max(Vector3.Dot(normal, lightDir), 0.0f);
+                        finalColor += targetObj.Material.Color * light.Color * intensity * diff;
+                    }
+                }
+            }
+
+            if (targetObj.Material.Reflectivity > 0.0f)
+            {
+                Vector3 viewDir = (point - cameraPosition).Normalized();
+
+                Vector3 reflectDir = viewDir - 2.0f * Vector3.Dot(viewDir, normal) * normal;
+
+                Vector3 shadowOrigin = point + normal * 0.02f;
+                Ray reflectRay = new Ray(shadowOrigin, reflectDir);
+
+                Vector3 reflectColor = TraceRay(reflectRay, scene, maxDepth, currentDepth + 1);
+
+                finalColor = finalColor * (1.0f - targetObj.Material.Reflectivity) + reflectColor * targetObj.Material.Reflectivity;
+            }
+
+            return finalColor;
+        }
     }
 }

@@ -29,7 +29,7 @@ namespace RayTracer.Models
             set { _height = value; }
         }
 
-        public Cylinder(string name, Vector3 center, float radius, float height, Material material) : base(name, material, center)
+        public Cylinder(string name, Vector3 center, float radius, float height, Material material, int lightmapRes = 256) : base(name, material, center, lightmapRes)
         {
             _radius = radius;
             _height = height;
@@ -132,7 +132,56 @@ namespace RayTracer.Models
 
         public override SceneObject Clone()
         {
-            return new Cylinder(Name, Center, _radius, _height, Material.Clone());
+            return new Cylinder(Name, Center, _radius, _height, Material.Clone(), LightmapRes);
+        }
+
+        public override bool TryGetSurfaceData(float u, float v, out Vector3 position, out Vector3 normal)
+        {
+            u = Math.Clamp(u, 0f, 0.999f);
+            v = Math.Clamp(v, 0f, 0.999f);
+
+            position = Vector3.Zero;
+            normal = Vector3.Zero;
+
+            if (u < 0.5f)
+            {
+                float localU = u * 2.0f;
+                float phi = localU * 2.0f * (float)Math.PI;
+                float y = _height / 2.0f - v * _height;
+
+                normal = new Vector3((float)Math.Cos(phi), 0, (float)Math.Sin(phi)).Normalized();
+                position = new Vector3(_radius * normal.X, y, _radius * normal.Z);
+            }
+            else
+            {
+                float localU = (u - 0.5f) * 2.0f;
+                float localV = (v % 0.5f) * 2.0f;
+
+                float x = (localU - 0.5f) * 2.0f * _radius;
+                float z = (localV - 0.5f) * 2.0f * _radius;
+
+                float dist = (float)Math.Sqrt(x * x + z * z);
+
+                if (dist > _radius)
+                {
+                    x = (x / dist) * _radius;
+                    z = (z / dist) * _radius;
+                }
+
+                if (v < 0.5f)
+                {
+                    normal = new Vector3(0, 1, 0);
+                    position = new Vector3(x, _height / 2.0f, z);
+                }
+                else
+                {
+                    normal = new Vector3(0, -1, 0);
+                    position = new Vector3(x, -_height / 2.0f, z);
+                }
+            }
+
+            position += Center;
+            return true;
         }
     }
 }

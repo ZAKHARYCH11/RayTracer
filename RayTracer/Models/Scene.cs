@@ -9,6 +9,7 @@
         private List<SceneObject> _objects;
         private List<Light> _lights;
         private Lightmap _lightmap;
+        private Skybox _skybox;
         private byte[] _lightmapData;
         private int _lightmapWidth;
         private int _lightmapHeight;
@@ -47,6 +48,15 @@
         {
             get { return _lightmap; }
             set { _lightmap = value; }
+        }
+
+        /// <summary>
+        /// Фон сцены
+        /// </summary>
+        public Skybox Skybox
+        {
+            get { return _skybox; }
+            set { _skybox = value; }
         }
 
         /// <summary>
