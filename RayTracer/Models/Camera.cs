@@ -75,7 +75,7 @@ namespace RayTracer.Models
         /// </summary>
         /// <param name="name">Имя камеры</param>
         /// <param name="position">Позиция камеры</param>
-        /// <param name="lookAt">Точка, куда смотрит камера</param>
+        /// <param name="direction">Направление камеры</param>
         /// <param name="up">Вектор "верха"</param>
         /// <param name="fovDegrees">Вертикальный угол обзора (в градусах)</param>
         public Camera(string name, Vector3 position, Vector3 direction, Vector3 up, float fovDegrees)

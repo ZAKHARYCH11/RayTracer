@@ -80,7 +80,7 @@ namespace RayTracer.Controllers
         public void AddSphere()
         {
             string name = GetUniqueName("Новая сфера");
-            _scene.Objects.Add(new Sphere(name, new Vector3(0, 0, -2), 0.5f, new Material(new Vector3(0.8f, 0.8f, 0.8f))));
+            _scene.Objects.Add(new Sphere(name, new Vector3(0, 0, 0), 0.5f, new Material(new Vector3(0.8f, 0.8f, 0.8f))));
             UpdateHierarchyView();
         }
 
@@ -90,7 +90,7 @@ namespace RayTracer.Controllers
         public void AddCube()
         {
             string name = GetUniqueName("Новый куб");
-            _scene.Objects.Add(new Cube(name, new Vector3(0, 0, -2), 1.0f, new Material(new Vector3(0.3f, 0.8f, 0.3f))));
+            _scene.Objects.Add(new Cube(name, new Vector3(0, 0, 0), 1.0f, new Material(new Vector3(0.8f, 0.8f, 0.8f))));
             UpdateHierarchyView();
         }
 
@@ -100,7 +100,7 @@ namespace RayTracer.Controllers
         public void AddCylinder()
         {
             string name = GetUniqueName("Новый цилиндр");
-            _scene.Objects.Add(new Cylinder(name, new Vector3(0, 0, -2), 0.5f, 1.0f, new Material(new Vector3(0.3f, 0.8f, 0.3f))));
+            _scene.Objects.Add(new Cylinder(name, new Vector3(0, 0, 0), 0.5f, 1.0f, new Material(new Vector3(0.8f, 0.8f, 0.8f))));
             UpdateHierarchyView();
         }
 
@@ -120,7 +120,7 @@ namespace RayTracer.Controllers
         public void AddSpotLight()
         {
             string name = GetUniqueName("Новый направленный свет");
-            _scene.Lights.Add(new SpotLight(name, new Vector3(1, 1, 1), 1.0f, new Vector3(1, 1, 1), new Vector3(0, -1, 0), 30f, 10f));
+            _scene.Lights.Add(new SpotLight(name, new Vector3(1, 1, 1), 1.0f, new Vector3(0, 0, 0), new Vector3(0, -1, 0), 30f, 10f));
             UpdateHierarchyView();
         }
 
@@ -130,7 +130,7 @@ namespace RayTracer.Controllers
         public void AddPointLight()
         {
             string name = GetUniqueName("Новый точечный свет");
-            _scene.Lights.Add(new PointLight(name, new Vector3(1, 1, 1), 1.0f, new Vector3(1, 1, 1), 10f));
+            _scene.Lights.Add(new PointLight(name, new Vector3(1, 1, 1), 1.0f, new Vector3(0, 0, 0), 10f));
             UpdateHierarchyView();
         }
 
@@ -264,15 +264,6 @@ namespace RayTracer.Controllers
                         _scene = loadedScene;
                         UpdateHierarchyView();
                         _view.SceneObjectsList.SelectedItem = null;
-
-                        if (_scene.LightmapData != null && _scene.LightmapData.Length > 0)
-                        {
-                            DisplayImage(_scene.LightmapData, _scene.LightmapWidth, _scene.LightmapHeight);
-                        }
-                        else
-                        {
-                            _view.LightmapPreviewImage.Source = null;
-                        }
 
                         System.Windows.MessageBox.Show("Сцена успешно загружена!", "Загрузка", MessageBoxButton.OK, MessageBoxImage.Information);
                     }
@@ -427,9 +418,7 @@ namespace RayTracer.Controllers
                     _view.PanelCylinder.Visibility = Visibility.Visible;
                     _view.CylRadius.Text = cyl.Radius.ToString("0.00", culture);
                     _view.Height.Text = cyl.Height.ToString("0.00", culture);
-                }
-
-                ShowLightmapPreview();
+                } 
             }
             else if (selectedItem is Light light)
             {
@@ -452,6 +441,8 @@ namespace RayTracer.Controllers
                     _view.PosX.Text = pl.Position.X.ToString("0.00", culture);
                     _view.PosY.Text = pl.Position.Y.ToString("0.00", culture);
                     _view.PosZ.Text = pl.Position.Z.ToString("0.00", culture);
+
+                    _view.LightRange.Text = pl.Range.ToString("0.00", culture);
                 }
                 else if (light is SpotLight sl)
                 {
@@ -466,10 +457,14 @@ namespace RayTracer.Controllers
                     _view.DirY.Text = sl.Direction.Y.ToString("0.00", culture);
                     _view.DirZ.Text = sl.Direction.Z.ToString("0.00", culture);
 
+                    _view.LightRange.Text = sl.Range.ToString("0.00", culture);
+
                     _view.PanelSpotAngle.Visibility = Visibility.Visible;
                     _view.SpotAngle.Text = sl.CutOffAngle.ToString("0.00", culture);
                 }
             }
+
+            ShowLightmapPreview();
 
             _isUpdatingUI = false;
         }
@@ -550,7 +545,6 @@ namespace RayTracer.Controllers
                     obj.Material.Reflectivity = (float)_view.SliderReflectivity.Value;
                     _view.Reflectivity.Text = obj.Material.Reflectivity.ToString("0.00", culture);
                 }
-                
             }
             else if (selectedItem is Light light)
             {
@@ -604,8 +598,9 @@ namespace RayTracer.Controllers
         }
 
         /// <summary>
-        /// Пытается переименовать объект. Возвращает false, если имя уже занято.
+        /// Попытка переименовать объект
         /// </summary>
+        /// <returns>true, если успешное переименование, иначе false</returns>
         public bool TryRenameObject(object target, string newName)
         {
             if (target == null || target is Camera || string.IsNullOrWhiteSpace(newName)) return false;
@@ -647,7 +642,7 @@ namespace RayTracer.Controllers
                 baseName = originalName.Substring(0, lastSpace);
 
             string newName = baseName;
-            int counter = 1;
+            int count = 1;
 
             bool NameExists(string name)
             {
@@ -656,8 +651,8 @@ namespace RayTracer.Controllers
 
             while (NameExists(newName))
             {
-                newName = $"{baseName} ({counter})";
-                counter++;
+                newName = $"{baseName} ({count})";
+                count++;
             }
             return newName;
         }
@@ -689,22 +684,6 @@ namespace RayTracer.Controllers
             _view.BtnRender.IsEnabled = true;
             _view.StatusText.Text = "Готов к работе";
             _view.RenderTimeText.Text = $"Время запекания: {sw.ElapsedMilliseconds / 1000.0:F2} с";
-        }
-
-        /// <summary>
-        /// Отображение световой карты
-        /// </summary>
-        /// <param name="pixelData">Массив пикселей</param>
-        /// <param name="width">Ширина изображения</param>
-        /// <param name="height">Высота изображения</param>
-        private void DisplayImage(byte[] pixelData, int width, int height)
-        {
-            int stride = width * 3;
-            BitmapSource bitmap = BitmapSource.Create(
-                width, height, 96, 96,
-                PixelFormats.Rgb24, null, pixelData, stride);
-
-            _view.LightmapPreviewImage.Source = bitmap;
         }
 
         /// <summary>

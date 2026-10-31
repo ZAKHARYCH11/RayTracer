@@ -4,10 +4,9 @@ using OpenTK.Wpf;
 using RayTracer.Controllers;
 using RayTracer.Models;
 using System;
+using System.Collections.Generic;
 using System.Windows;
 using System.Windows.Input;
-using System.Collections.Generic;
-
 using KeyEventArgs = System.Windows.Input.KeyEventArgs;
 using Point = System.Windows.Point;
 
@@ -58,11 +57,11 @@ namespace RayTracer.Views
         {
             if (Controller == null || Controller.Scene == null) return;
 
-            // 1. Очистка экрана
+            // Очистка экрана
             GL.ClearColor(0.15f, 0.15f, 0.15f, 1.0f);
             GL.Clear(ClearBufferMask.ColorBufferBit | ClearBufferMask.DepthBufferBit);
 
-            // 2. Настройка виртуальной камеры OpenGL
+            // Настройка виртуальной камеры OpenGL
             Camera cam = Controller.Scene.MainCamera;
             
             GL.MatrixMode(MatrixMode.Projection);
@@ -81,13 +80,13 @@ namespace RayTracer.Views
             Matrix4 view = Matrix4.LookAt(cam.Position, cam.Position + cam.Direction, cam.Up);
             GL.LoadMatrix(ref view);
 
-            // 3. Отрисовка заденго фона (неба)
+            // Отрисовка заденго фона (неба)
             if (Controller.Scene.Skybox != null)
             {
                 DrawSkybox(cam.Position, Controller.Scene.Skybox);
             }
 
-            // 4. Отрисовка объектов сцены
+            // Отрисовка объектов сцены
             GL.Enable(EnableCap.DepthTest);
             GL.Enable(EnableCap.CullFace);
             GL.CullFace(CullFaceMode.Back);
@@ -117,11 +116,23 @@ namespace RayTracer.Views
             if (isSolid)
                 GL.Disable(EnableCap.Texture2D);
 
-            // 5. Отрисовка координатной сетки
+            // Отрисовка источников света
+            if (!isSolid)
+            {
+                foreach(var light in Controller.Scene.Lights)
+                {
+                    if (light is PointLight pointLight)
+                        DrawPointLight(pointLight.Position, pointLight.Range, pointLight.Color);
+                    else if (light is SpotLight spotLight)
+                        DrawSpotLight(spotLight.Position, spotLight.Direction, spotLight.Range, spotLight.CutOffAngle, spotLight.Color);
+                }
+            }
+
+            // Отрисовка координатной сетки
             if (!isSolid)
                 DrawGrid();
 
-            // 6. Движение камеры
+            // Движение камеры
             if (_isRmbDown && Controller != null)
             {
                 Controller.MoveCamera(_keyW, _keyA, _keyS, _keyD, _keyShift, (float)delta.TotalSeconds);
@@ -443,10 +454,10 @@ namespace RayTracer.Views
                     float u = 0.5f + 0.5f * (float)Math.Cos(theta);
                     float v = 0.5f + 0.5f * (float)Math.Sin(theta);
 
-                    if (k == 1)
-                        GL.TexCoord2(0.5f + u * 0.5f, v * 0.5f);
-                    else
+                    if (k == 0)
                         GL.TexCoord2(0.5f + u * 0.5f, 0.5f + v * 0.5f);
+                    else    
+                        GL.TexCoord2(0.5f + u * 0.5f, v * 0.5f);
 
                     GL.Vertex3(radius * Math.Cos(theta), -halfHeight + height * k, radius * Math.Sin(theta));
                 }
@@ -469,6 +480,98 @@ namespace RayTracer.Views
             }
             GL.End();
 
+
+            GL.PopMatrix();
+        }
+
+        /// <summary>
+        /// Отрисовка точечного источника света
+        /// </summary>
+        /// <param name="position">Координаты источника</param>
+        /// <param name="range">Дальность света</param>
+        /// <param name="color">Цвет света</param>
+        private void DrawPointLight(Vector3 position, float range, Vector3 color)
+        {
+            int segments = 20;
+
+            GL.PushMatrix();
+            GL.Translate(position.X, position.Y, position.Z);
+            GL.Color3(color.X, color.Y, color.Z);
+
+            GL.Begin(PrimitiveType.LineLoop);
+            for (int i = 0;i < segments; i++)
+            {
+                float theta = 2.0f * (float)Math.PI * i / segments;
+                GL.Vertex3(range * Math.Cos(theta), 0, range * Math.Sin(theta));
+            }
+            GL.End();
+
+            GL.Begin(PrimitiveType.LineLoop);
+            for (int i = 0; i < segments; i++)
+            {
+                float theta = 2.0f * (float)Math.PI * i / segments;
+                GL.Vertex3(0, range * Math.Cos(theta), range * Math.Sin(theta));
+            }
+            GL.End();
+
+            GL.Begin(PrimitiveType.LineLoop);
+            for (int i = 0; i < segments; i++)
+            {
+                float theta = 2.0f * (float)Math.PI * i / segments;
+                GL.Vertex3(range * Math.Sin(theta), range * Math.Cos(theta), 0);
+            }
+            GL.End();
+
+            GL.PopMatrix();
+        }
+
+        /// <summary>
+        /// Отрисовка направленного источника света
+        /// </summary>
+        /// <param name="position">Координаты источника</param>
+        /// <param name="direction">Направление света</param>
+        /// <param name="range">Дальность света</param>
+        /// <param name="cutOffAngle">Угол освещения</param>
+        /// <param name="color">Цвет света</param>
+        private void DrawSpotLight(Vector3 position, Vector3 direction, float range, float cutOffAngle, Vector3 color)
+        {
+            int segments = 24;
+            int lines = segments / 4;
+
+            GL.PushMatrix();
+            GL.Translate(position.X, position.Y, position.Z);
+            GL.Color3(color.X, color.Y, color.Z);
+
+            Vector3 dir = direction.Normalized();
+
+            Vector3 arbitrary = (Math.Abs(dir.Y) > 0.99f) ? new Vector3(1, 0, 0) : new Vector3(0, 1, 0);
+
+            Vector3 right = Vector3.Cross(arbitrary, dir).Normalized();
+            Vector3 up = Vector3.Cross(dir, right).Normalized();
+
+            float angleRad = MathHelper.DegreesToRadians(cutOffAngle);
+            float radius = range * (float)Math.Tan(angleRad);
+
+            Vector3 baseCenter = dir * range;
+
+            GL.Begin(PrimitiveType.LineLoop);
+            for (int i = 0; i < segments; i++)
+            {
+                float theta = 2.0f * (float)Math.PI * i / segments;
+                Vector3 p = baseCenter + radius * (float)Math.Cos(theta) * right + radius * (float)Math.Sin(theta) * up;
+                GL.Vertex3(p.X, p.Y, p.Z);
+            }
+            GL.End();
+
+            GL.Begin(PrimitiveType.Lines);
+            for (int i = 0; i < lines; i++)
+            {
+                float theta = 2.0f * (float)Math.PI * i / lines;
+                Vector3 p = baseCenter + radius * (float)Math.Cos(theta) * right + radius * (float)Math.Sin(theta) * up;
+                GL.Vertex3(0, 0, 0);
+                GL.Vertex3(p.X, p.Y, p.Z);
+            }
+            GL.End();
 
             GL.PopMatrix();
         }

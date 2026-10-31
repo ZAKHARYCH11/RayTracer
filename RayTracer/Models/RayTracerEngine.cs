@@ -11,40 +11,6 @@ namespace RayTracer.Models
     public class RayTracerEngine
     {
         /// <summary>
-        /// Рендер сцены
-        /// </summary>
-        /// <param name="scene">Сцена</param>
-        /// <param name="camera">Камера</param>
-        /// <param name="width">Ширина изображения</param>
-        /// <param name="height">Высота изображения</param>
-        /// <param name="maxDepth">Максимальное число переотражения луча (глубина трассировки)</param>
-        /// <returns>Массив байт пикселей (3 байта - 1 пиксель)</returns>
-        public byte[] RenderView(Scene scene, Camera camera, int width, int height, int maxDepth)
-        {
-            byte[] pixels = new byte[width * height * 3];
-
-            Parallel.For(0, height, y =>
-            {
-                for (int x = 0; x < width; x++)
-                {
-                    float u = (float)x / (width - 1);
-                    float v = (float)(height - y - 1) / (height - 1);
-
-                    Ray ray = camera.GetRay(u, v);
-
-                    Vector3 color = TraceRay(ray, scene, maxDepth, 0);
-
-                    int index = (y * width + x) * 3;
-                    pixels[index] = (byte)(Math.Clamp(color.X, 0f, 1f) * 255);     // R
-                    pixels[index + 1] = (byte)(Math.Clamp(color.Y, 0f, 1f) * 255); // G
-                    pixels[index + 2] = (byte)(Math.Clamp(color.Z, 0f, 1f) * 255); // B
-                }
-            });
-
-            return pixels;
-        }
-
-        /// <summary>
         /// Рекурсивная функция трассировки одного луча
         /// </summary>
         /// <param name="ray">Трассируемый луч</param>
@@ -54,17 +20,21 @@ namespace RayTracer.Models
         /// <returns>Цвет пикселя</returns>
         private Vector3 TraceRay(Ray ray, Scene scene, int maxDepth, int currentDepth)
         {
+            // Превышена максимальная глубина трассировки
             if (currentDepth >= maxDepth)
                 return Vector3.Zero;
 
+            // Есть пересечение
             if (scene.RayCast(ray, out Intersection hit))
             {
                 Material mat = hit.Object.Material;
                 Vector3 finalColor = Vector3.Zero;
 
+                // Базовый цвет
                 Vector3 ambient = mat.Color * 0.15f;
                 finalColor += ambient;
 
+                // Рассчет освещения источниками
                 foreach (var light in scene.Lights)
                 {
                     float currentIntensity = light.GetIntensityAt(hit.Point);
@@ -76,8 +46,10 @@ namespace RayTracer.Models
                         Vector3 shadowOrigin = hit.Point + hit.Normal * 0.001f;
                         Ray shadowRay = new Ray(shadowOrigin, lightDir);
 
+                        // Проверка тени
                         if (!scene.RayCast(shadowRay, out Intersection shadowHit) || shadowHit.Distance > light.GetDistanceToLight(hit.Point))
                         {
+                            // Освещение по Ламберту
                             float diff = Math.Max(Vector3.Dot(hit.Normal, lightDir), 0.0f);
                             Vector3 diffuse = mat.Color * light.Color * currentIntensity * diff;
                             finalColor += diffuse;
@@ -85,6 +57,7 @@ namespace RayTracer.Models
                     }
                 }
 
+                // Зеркальные отражения
                 if (mat.Reflectivity > 0.0f)
                 {
                     Vector3 shadowOrigin = hit.Point + hit.Normal * 0.001f;
@@ -107,6 +80,7 @@ namespace RayTracer.Models
         /// </summary>
         /// <param name="scene">Сцена</param>
         /// <param name="maxDepth">Глубина трассировки</param>
+        /// <param name="cameraPosition">Положение камеры</param>
         public void BakeLightmaps(Scene scene, int maxDepth, Vector3 cameraPosition)
         {
             foreach (var obj in scene.Objects)
@@ -147,10 +121,14 @@ namespace RayTracer.Models
         /// <param name="maxDepth">Глубина трассировки</param>
         /// <param name="currentDepth">Текущая глубина</param>
         /// <param name="cameraPosition">Положение камеры</param>
+        /// <returns>Цвет точки</returns>
         private Vector3 CalculateBakeColor(Scene scene, SceneObject targetObj, Vector3 point, Vector3 normal, int maxDepth, int currentDepth, Vector3 cameraPosition)
         {
-            if (currentDepth >= maxDepth) return Vector3.Zero;
+            // Превышена максимальная глубина трассирвки
+            if (currentDepth >= maxDepth)
+                return Vector3.Zero;
 
+            // Базовый цвет
             Vector3 finalColor = targetObj.Material.Color * 0.15f;
 
             foreach (var light in scene.Lights)
@@ -163,21 +141,23 @@ namespace RayTracer.Models
                     Vector3 shadowOrigin = point + normal * 0.001f;
                     Ray shadowRay = new Ray(shadowOrigin, lightDir);
 
+                    // Проверка тени
                     if (!scene.RayCast(shadowRay, out Intersection hit) || hit.Distance > light.GetDistanceToLight(point))
                     {
+                        // Освещение по Ламберту
                         float diff = Math.Max(Vector3.Dot(normal, lightDir), 0.0f);
                         finalColor += targetObj.Material.Color * light.Color * intensity * diff;
                     }
                 }
             }
 
+            // Зеркальные отражения
             if (targetObj.Material.Reflectivity > 0.0f)
             {
                 Vector3 viewDir = (point - cameraPosition).Normalized();
-
                 Vector3 reflectDir = viewDir - 2.0f * Vector3.Dot(viewDir, normal) * normal;
 
-                Vector3 shadowOrigin = point + normal * 0.02f;
+                Vector3 shadowOrigin = point + normal * 0.001f;
                 Ray reflectRay = new Ray(shadowOrigin, reflectDir);
 
                 Vector3 reflectColor = TraceRay(reflectRay, scene, maxDepth, currentDepth + 1);

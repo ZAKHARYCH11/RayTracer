@@ -20,7 +20,7 @@ namespace RayTracer.Models
         }
 
         /// <summary>
-        /// Коэффициент зеркальности (0 - матовый, 1 - идеальное зеркало)
+        /// Коэффициент зеркальности (0 - матовый, 1 - полной отражение)
         /// </summary>
         public float Reflectivity 
         {

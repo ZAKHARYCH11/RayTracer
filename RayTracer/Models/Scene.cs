@@ -8,7 +8,6 @@
         private Camera _mainCamera;
         private List<SceneObject> _objects;
         private List<Light> _lights;
-        private Lightmap _lightmap;
         private Skybox _skybox;
         private byte[] _lightmapData;
         private int _lightmapWidth;
@@ -39,15 +38,6 @@
         {
             get { return _lights; }
             set { _lights = value; }
-        }
-
-        /// <summary>
-        /// Световая карта
-        /// </summary>
-        public Lightmap Lightmap
-        {
-            get { return _lightmap; }
-            set { _lightmap = value; }
         }
 
         /// <summary>
@@ -97,7 +87,7 @@
         /// </summary>
         /// <param name="ray">Испускаемый луч</param>
         /// <param name="closestHit">Данные о ближайшем пересечении</param>
-        /// <returns>True, если луч попал хоть в один объект</returns>
+        /// <returns>true, если луч попал хоть в один объект</returns>
         public bool RayCast(Ray ray, out Intersection closestHit)
         {
             bool hitAnything = false;

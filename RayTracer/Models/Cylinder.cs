@@ -54,11 +54,13 @@ namespace RayTracer.Models
 
             float a = ray.Direction.X * ray.Direction.X + ray.Direction.Z * ray.Direction.Z;
 
+            // Пересечение с боковой поверхностью
             if (Math.Abs(a) > 0.00001f)
             {
                 float ocX = ray.Origin.X - Center.X;
                 float ocZ = ray.Origin.Z - Center.Z;
 
+                // Коэффициенты квадратного уравнения
                 float b = 2.0f * (ocX * ray.Direction.X + ocZ * ray.Direction.Z);
                 float c = ocX * ocX + ocZ * ocZ - _radius * _radius;
 
@@ -95,6 +97,7 @@ namespace RayTracer.Models
                 }
             }
 
+            // Пересечение с основаниями цилиндра
             if (Math.Abs(ray.Direction.Y) > 0.00001f)
             {
                 float tBottom = (yMin - ray.Origin.Y) / ray.Direction.Y;
@@ -121,6 +124,7 @@ namespace RayTracer.Models
                 }
             }
 
+            // Нет пересечения
             if (tClosest == float.MaxValue) return false;
 
             hit.Distance = tClosest;

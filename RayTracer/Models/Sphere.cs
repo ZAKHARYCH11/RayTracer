@@ -28,18 +28,20 @@ namespace RayTracer.Models
         /// </summary>
         /// <param name="ray">Испускаемый луч</param>
         /// <param name="hit">Данные о пересечении</param>
-        /// <returns>True, если пересечение есть, иначе False</returns>
+        /// <returns>true, если пересечение есть, иначе false</returns>
         public override bool Intersect(Ray ray, out Intersection hit)
         {
             hit = default;
 
             Vector3 oc = ray.Origin - Center;
 
+            // Коэффициенты квадратного уравнения
             float b = 2.0f * Vector3.Dot(oc, ray.Direction);
             float c = Vector3.Dot(oc, oc) - _radius * _radius;
 
             float discriminant = b * b - 4 * c;
 
+            // Луч проходит мимо
             if (discriminant < 0)
             {
                 return false;
@@ -47,6 +49,7 @@ namespace RayTracer.Models
 
             float t = (-b - (float)Math.Sqrt(discriminant)) / 2.0f;
 
+            // Поиск наибольшего положительного корня
             if (t < 0.001f)
             {
                 t = (-b + (float)Math.Sqrt(discriminant)) / 2.0f;

@@ -29,7 +29,7 @@ namespace RayTracer.Models
         /// </summary>
         /// <param name="ray">Испускаемый луч</param>
         /// <param name="hit">Данные о пересечении</param>
-        /// <returns>True, если пересечение есть, иначе False</returns>
+        /// <returns>true, если пересечение есть, иначе false</returns>
         public override bool Intersect(Ray ray, out Intersection hit)
         {
             hit = default;
@@ -38,27 +38,32 @@ namespace RayTracer.Models
             Vector3 min = Center - new Vector3(halfSide);
             Vector3 max = Center + new Vector3(halfSide);
 
+            // Персечение с плосткостью по оси X
             float tMin = (min.X - ray.Origin.X) / ray.Direction.X;
             float tMax = (max.X - ray.Origin.X) / ray.Direction.X;
 
             if (tMin > tMax) Swap(ref tMin, ref tMax);
 
+            // Персечение с плоскостью по оси Y
             float tyMin = (min.Y - ray.Origin.Y) / ray.Direction.Y;
             float tyMax = (max.Y - ray.Origin.Y) / ray.Direction.Y;
 
             if (tyMin > tyMax) Swap(ref tyMin, ref tyMax);
 
+            // Нет пересечения
             if ((tMin > tyMax) || (tyMin > tMax))
                 return false;
 
             if (tyMin > tMin) tMin = tyMin;
             if (tyMax < tMax) tMax = tyMax;
 
+            // Пересечение с плоскостью по оси Z
             float tzMin = (min.Z - ray.Origin.Z) / ray.Direction.Z;
             float tzMax = (max.Z - ray.Origin.Z) / ray.Direction.Z;
 
             if (tzMin > tzMax) Swap(ref tzMin, ref tzMax);
 
+            // Нет пересечения
             if ((tMin > tzMax) || (tzMin > tMax))
                 return false;
 
