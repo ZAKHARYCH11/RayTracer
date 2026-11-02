@@ -51,6 +51,33 @@
             </Setter>
         </Style>
 
+        <Style x:Key="NoMouseOverButtonStyle" TargetType="Button">
+            <Setter Property="Background" Value="{StaticResource ElementBg}"/>
+            <Setter Property="Foreground" Value="{StaticResource TextColor}"/>
+            <Setter Property="BorderBrush" Value="{StaticResource BorderColor}"/>
+            <Setter Property="Padding" Value="5"/>
+            <Setter Property="Margin" Value="2"/>
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="Button">
+                        <Border x:Name="Border" Background="{TemplateBinding Background}"
+                BorderBrush="{TemplateBinding BorderBrush}"
+                Padding="{TemplateBinding Padding}">
+                            <ContentPresenter x:Name="ContentSite"
+                VerticalAlignment="Center"
+                HorizontalAlignment="Center"
+                Margin="{TemplateBinding Padding}"/>
+                        </Border>
+                        <ControlTemplate.Triggers>
+                            <Trigger Property="IsPressed" Value="True">
+                                <Setter TargetName="Border" Property="Background" Value="{StaticResource Pressed}"/>
+                            </Trigger>
+                        </ControlTemplate.Triggers>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+
         <Style TargetType="TextBox">
             <Setter Property="Background" Value="{StaticResource DarkBg}"/>
             <Setter Property="Foreground" Value="{StaticResource TextColor}"/>

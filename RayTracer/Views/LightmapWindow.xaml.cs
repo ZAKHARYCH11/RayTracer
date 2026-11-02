@@ -33,12 +33,16 @@ namespace RayTracer.Views
             if (imgScale.ScaleX * zoom < 0.1 || imgScale.ScaleX * zoom > 50.0) return;
 
             Point mousePos = e.GetPosition(ImageContainer);
+            double mx = mousePos.X - ImageContainer.ActualWidth / 2.0;
+            double my = mousePos.Y - ImageContainer.ActualHeight / 2.0;
 
-            imgTranslate.X = mousePos.X - (mousePos.X - imgTranslate.X) * zoom;
-            imgTranslate.Y = mousePos.Y - (mousePos.Y - imgTranslate.Y) * zoom;
+            imgTranslate.X = mx - (mx - imgTranslate.X) * zoom;
+            imgTranslate.Y = my - (my - imgTranslate.Y) * zoom;
 
             imgScale.ScaleX *= zoom;
             imgScale.ScaleY *= zoom;
+
+            ClampImagePosition();
         }
 
         /// <summary>
@@ -48,8 +52,7 @@ namespace RayTracer.Views
         {
             _lastMousePosition = e.GetPosition(null);
             _leftMouseDown = true;
-
-            e.Handled = true;
+            ImageContainer.CaptureMouse();
         }
 
         /// <summary>
@@ -57,7 +60,7 @@ namespace RayTracer.Views
         /// </summary>
         private void ImageContainer_MouseMove(object sender, MouseEventArgs e)
         {
-            if (_leftMouseDown)
+            if (_leftMouseDown && e.LeftButton == MouseButtonState.Pressed)
             {
                 Point currentMousePosition = e.GetPosition(null);
 
@@ -67,7 +70,13 @@ namespace RayTracer.Views
                 imgTranslate.X += deltaX;
                 imgTranslate.Y += deltaY;
 
+                ClampImagePosition();
+
                 _lastMousePosition = currentMousePosition;
+            }
+            else
+            {
+                _leftMouseDown = false;
             }
         }
 
@@ -77,7 +86,22 @@ namespace RayTracer.Views
         private void ImageContainer_MouseLeftButtonUp(object sender, MouseButtonEventArgs e)
         {
             _leftMouseDown = false;
-            e.Handled = true;
+            ImageContainer.ReleaseMouseCapture();
+        }
+
+        /// <summary>
+        /// Ограничение перемещения изображения
+        /// </summary>
+        private void ClampImagePosition()
+        {
+            double halfImageW = LargeImage.ActualWidth * imgScale.ScaleX / 2.0;
+            double halfImageH = LargeImage.ActualHeight * imgScale.ScaleY / 2.0;
+
+            double limitX = Math.Max(ImageContainer.ActualWidth / 2.0, halfImageW);
+            double limitY = Math.Max(ImageContainer.ActualHeight / 2.0, halfImageH);
+
+            imgTranslate.X = Math.Clamp(imgTranslate.X, -limitX, limitX);
+            imgTranslate.Y = Math.Clamp(imgTranslate.Y, -limitY, limitY);
         }
     }
 }

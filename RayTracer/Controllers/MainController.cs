@@ -43,7 +43,7 @@ namespace RayTracer.Controllers
         /// </summary>
         public void InitializeStartScene()
         {
-            _scene.Skybox = new Skybox(new Vector3(0.5f, 0.7f, 1.0f), new Vector3(0.1f, 0.1f, 0.1f));
+            _scene.Skybox = new Skybox(new Vector3(0.49f, 0.75f, 1.0f), new Vector3(0.2f, 0.2f, 0.2f));
 
             _scene.MainCamera = new Camera("Камера", new Vector3(0, 0, 1.5f), new Vector3(0, 0, -1), new Vector3(0, 1, 0), 75f);
 
@@ -716,7 +716,7 @@ namespace RayTracer.Controllers
             byte g = (byte)(Math.Clamp(color.Y, 0f, 1f) * 255);
             byte b = (byte)(Math.Clamp(color.Z, 0f, 1f) * 255);
 
-            _view.BtnSelectColor.Content = $"Выбрать цвет (R:{r} G:{g} B:{b})";
+            _view.TxtColor.Text = $"Цвет: (R:{r} G:{g} B:{b})";
 
             _view.BtnSelectColor.Background = new SolidColorBrush(System.Windows.Media.Color.FromRgb(r, g, b));
         }

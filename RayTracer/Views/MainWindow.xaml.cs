@@ -171,8 +171,13 @@ namespace RayTracer.Views
                     float ny1 = (float)Math.Cos(theta1);
                     float nz1 = (float)(Math.Sin(theta1) * Math.Sin(phi));
 
-                    float t1 = 0.5f * (ny1 + 1.0f);
-                    Vector3 c1 = (1.0f - t1) * sky.ColorBottom + t1 * sky.ColorTop;
+                    Vector3 c1 = sky.ColorBottom;
+                    if(ny1 > 0)
+                    {
+                        float t1 = 0.5f * (ny1 + 1.0f);
+                        c1 = (1.0f - t1) * sky.ColorBottom + t1 * sky.ColorTop;
+                    }
+                    
 
                     GL.Color3(c1.X, c1.Y, c1.Z);
                     GL.Vertex3(radius * nx1, radius * ny1, radius * nz1);
@@ -181,8 +186,12 @@ namespace RayTracer.Views
                     float ny2 = (float)Math.Cos(theta2);
                     float nz2 = (float)(Math.Sin(theta2) * Math.Sin(phi));
 
-                    float t2 = 0.5f * (ny2 + 1.0f);
-                    Vector3 c2 = (1.0f - t2) * sky.ColorBottom + t2 * sky.ColorTop;
+                    Vector3 c2 = sky.ColorBottom;
+                    if (ny1 > 0)
+                    {
+                        float t2 = 0.5f * (ny2 + 1.0f);
+                        c2 = (1.0f - t2) * sky.ColorBottom + t2 * sky.ColorTop;
+                    }
 
                     GL.Color3(c2.X, c2.Y, c2.Z);
                     GL.Vertex3(radius * nx2, radius * ny2, radius * nz2);

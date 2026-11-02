@@ -18,7 +18,7 @@
             <TextBlock Text="Зажмите ЛКМ для перемещения. Колесико мыши для масштаба." 
                        Foreground="Gray" HorizontalAlignment="Center" VerticalAlignment="Top" Margin="10" Panel.ZIndex="1"/>
 
-            <Image x:Name="LargeImage" RenderOptions.BitmapScalingMode="NearestNeighbor">
+            <Image x:Name="LargeImage" RenderOptions.BitmapScalingMode="NearestNeighbor" RenderTransformOrigin="0.5,0.5">
                 <Image.RenderTransform>
                     <TransformGroup>
                         <ScaleTransform x:Name="imgScale"/>
