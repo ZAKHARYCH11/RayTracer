@@ -23,6 +23,9 @@ namespace RayTracer.Views
         private bool _keyW, _keyA, _keyS, _keyD, _keyShift;
         private Point _lastMousePos;
 
+        private bool _isOpenGlPaused = false;
+        private bool _pendingClearTextures = false;
+
         private Dictionary<SceneObject, int> _textureCache = new Dictionary<SceneObject, int>();
 
         /// <summary>
@@ -55,7 +58,18 @@ namespace RayTracer.Views
         /// <param name="delta">Пройденное время между кадрами</param>
         private void OpenGlControl_Render(TimeSpan delta)
         {
-            if (Controller == null || Controller.Scene == null) return;
+            if (_isOpenGlPaused || Controller == null || Controller.Scene == null) return;
+
+            // Очистка кэша текстур
+            if (_pendingClearTextures)
+            {
+                foreach (var texId in _textureCache.Values)
+                {
+                    GL.DeleteTexture(texId);
+                }
+                _textureCache.Clear();
+                _pendingClearTextures = false;
+            }
 
             // Очистка экрана
             GL.ClearColor(0.15f, 0.15f, 0.15f, 1.0f);
@@ -63,6 +77,7 @@ namespace RayTracer.Views
 
             // Настройка виртуальной камеры OpenGL
             Camera cam = Controller.Scene.MainCamera;
+            if(cam == null) return;
             
             GL.MatrixMode(MatrixMode.Projection);
             GL.LoadIdentity();
@@ -135,8 +150,31 @@ namespace RayTracer.Views
             // Движение камеры
             if (_isRmbDown && Controller != null)
             {
-                Controller.MoveCamera(_keyW, _keyA, _keyS, _keyD, _keyShift, (float)delta.TotalSeconds);
+                int dx = 0;
+                int dy = 0;
+                if (_keyW) dx += 1;
+                if (_keyS) dx -= 1;
+                if (_keyD) dy += 1;
+                if (_keyA) dy -= 1;
+                Controller.MoveCamera(dx, dy, _keyShift, (float)delta.TotalSeconds);
             }
+        }
+
+        /// <summary>
+        /// Установка паузы на рендер OpenGL
+        /// </summary>
+        public void SetOpenGLPaused(bool paused)
+        {
+            _isOpenGlPaused = paused;
+            OpenGlControl.RenderContinuously = !paused;
+        }
+
+        /// <summary>
+        /// Помечает кэш видеокарты на безопасную очистку в следующем кадре рендера
+        /// </summary>
+        public void ClearTextureCache()
+        {
+            _pendingClearTextures = true;
         }
 
         /// <summary>
@@ -172,7 +210,7 @@ namespace RayTracer.Views
                     float nz1 = (float)(Math.Sin(theta1) * Math.Sin(phi));
 
                     Vector3 c1 = sky.ColorBottom;
-                    if(ny1 > 0)
+                    if(ny1 > -0.01)
                     {
                         float t1 = 0.5f * (ny1 + 1.0f);
                         c1 = (1.0f - t1) * sky.ColorBottom + t1 * sky.ColorTop;
@@ -187,7 +225,7 @@ namespace RayTracer.Views
                     float nz2 = (float)(Math.Sin(theta2) * Math.Sin(phi));
 
                     Vector3 c2 = sky.ColorBottom;
-                    if (ny1 > 0)
+                    if (ny2 > -0.01)
                     {
                         float t2 = 0.5f * (ny2 + 1.0f);
                         c2 = (1.0f - t2) * sky.ColorBottom + t2 * sky.ColorTop;
@@ -613,18 +651,6 @@ namespace RayTracer.Views
         }
 
         /// <summary>
-        /// Очистка кэша текстур
-        /// </summary>
-        public void ClearTextureCache()
-        {
-            foreach (var texId in _textureCache.Values)
-            {
-                GL.DeleteTexture(texId);
-            }
-            _textureCache.Clear();
-        }
-
-        /// <summary>
         /// Нажатие кнопки добавления объекта
         /// </summary>
         private void BtnAddObject_Click(object sender, RoutedEventArgs e)
@@ -673,9 +699,24 @@ namespace RayTracer.Views
         /// </summary>
         private void MenuSaveScene_Click(object sender, RoutedEventArgs e) => Controller?.SaveScene();
         /// <summary>
+        /// Нажатие кнопки сохранить как
+        /// </summary>
+        private void MenuSaveAsScene_Click(object sender, RoutedEventArgs e) => Controller?.SaveSceneAs();
+        /// <summary>
         /// Нажатие кнопки выхода
         /// </summary>
-        private void MenuExit_Click(object sender, RoutedEventArgs e) => System.Windows.Application.Current.Shutdown();
+        private void MenuExit_Click(object sender, RoutedEventArgs e) => Close();
+
+        /// <summary>
+        /// Закрытие приложения
+        /// </summary>
+        private void Window_Closing(object sender, System.ComponentModel.CancelEventArgs e)
+        {
+            if (Controller != null && !Controller.ConfirmUnsavedChanges())
+            {
+                e.Cancel = true;
+            }
+        }
 
         /// <summary>
         /// Нажатие ПКМ по элементу списка объектов
@@ -823,6 +864,11 @@ namespace RayTracer.Views
 
             var obj = textBox.DataContext;
             string newName = textBox.Text.Trim();
+            if (string.IsNullOrWhiteSpace(newName))
+            {
+                CancelRename(textBox);
+                return;
+            }
 
             CancelRename(textBox);
 
@@ -867,6 +913,38 @@ namespace RayTracer.Views
         }
 
         /// <summary>
+        /// Снятие выделения при клике ЛКМ по пустому фону левой панели или по 3D-окну
+        /// </summary>
+        private void Deselect_MouseLeftButtonDown(object sender, System.Windows.Input.MouseButtonEventArgs e)
+        {
+            SceneObjectsList.SelectedItem = null;
+        }
+
+        /// <summary>
+        /// Снятие выделения при клике ЛКМ по пустой области внутри самого списка объектов
+        /// </summary>
+        private void SceneObjectsList_PreviewMouseLeftButtonDown(object sender, System.Windows.Input.MouseButtonEventArgs e)
+        {
+            DependencyObject? current = e.OriginalSource as DependencyObject;
+
+            while (current != null && current != SceneObjectsList)
+            {
+                if (current is System.Windows.Controls.ListBoxItem ||
+                    current is System.Windows.Controls.Primitives.ScrollBar)
+                {
+                    return;
+                }
+
+                current = (current is System.Windows.Media.Visual || current is System.Windows.Media.Media3D.Visual3D)
+                    ? System.Windows.Media.VisualTreeHelper.GetParent(current)
+                    : LogicalTreeHelper.GetParent(current);
+            }
+
+            SceneObjectsList.Focus();
+            SceneObjectsList.SelectedItem = null;
+        }
+
+        /// <summary>
         /// Нажатие по изображения световой карты
         /// </summary>
         private void LightmapPreviewImage_MouseLeftButtonDown(object sender, System.Windows.Input.MouseButtonEventArgs e)
@@ -886,13 +964,74 @@ namespace RayTracer.Views
         /// <summary>
         /// Обработка нажатия кнопок
         /// </summary>
-        private void Window_KeyDown(object sender, System.Windows.Input.KeyEventArgs e)
+        private void Window_PreviewKeyDown(object sender, System.Windows.Input.KeyEventArgs e)
         {
-            if (e.Key == System.Windows.Input.Key.W) _keyW = true;
-            if (e.Key == System.Windows.Input.Key.A) _keyA = true;
-            if (e.Key == System.Windows.Input.Key.S) _keyS = true;
-            if (e.Key == System.Windows.Input.Key.D) _keyD = true;
-            if (e.Key == System.Windows.Input.Key.LeftShift) _keyShift = true;
+            var key = (e.Key == System.Windows.Input.Key.ImeProcessed) ? e.ImeProcessedKey : e.Key;
+
+            bool isCtrl = (System.Windows.Input.Keyboard.Modifiers & System.Windows.Input.ModifierKeys.Control)
+                          == System.Windows.Input.ModifierKeys.Control;
+            bool isShift = (System.Windows.Input.Keyboard.Modifiers & System.Windows.Input.ModifierKeys.Shift)
+                           == System.Windows.Input.ModifierKeys.Shift;
+
+            bool isTypingInTextBox = e.OriginalSource is System.Windows.Controls.TextBox;
+            bool isRenaming = e.OriginalSource is System.Windows.Controls.TextBox tb && tb.Name == "NameInput";
+
+            if (isCtrl)
+            {
+                if (!e.IsRepeat)
+                {
+                    // Сохранить как
+                    if (isShift && key == System.Windows.Input.Key.S)
+                    {
+                        Controller?.SaveSceneAs();
+                        e.Handled = true;
+                    }
+                    // Сохранить
+                    else if (!isShift && key == System.Windows.Input.Key.S)
+                    {
+                        Controller?.SaveScene();
+                        e.Handled = true;
+                    }
+                    // Открыть
+                    else if (!isShift && key == System.Windows.Input.Key.O)
+                    {
+                        Controller?.LoadScene();
+                        e.Handled = true;
+                    }
+                    // Клонировать объект
+                    else if (!isShift && !isRenaming && key == System.Windows.Input.Key.D)
+                    {
+                        Controller?.CloneSelected();
+                        e.Handled = true;
+                    }
+                }
+                return;
+            }
+
+            // Удаление
+            if (!e.IsRepeat && !isTypingInTextBox && key == System.Windows.Input.Key.Delete)
+            {
+                Controller?.DeleteSelected();
+                e.Handled = true;
+                return;
+            }
+
+            // Запуск рендера
+            if (!e.IsRepeat && !isRenaming && key == System.Windows.Input.Key.F5)
+            {
+                Controller?.StartRender();
+                e.Handled = true;
+                return;
+            }
+
+            if (!isTypingInTextBox || _isRmbDown)
+            {
+                if (key == System.Windows.Input.Key.W) _keyW = true;
+                if (key == System.Windows.Input.Key.A) _keyA = true;
+                if (key == System.Windows.Input.Key.S) _keyS = true;
+                if (key == System.Windows.Input.Key.D) _keyD = true;
+                if (key == System.Windows.Input.Key.LeftShift) _keyShift = true;
+            }
         }
 
         /// <summary>
@@ -934,11 +1073,11 @@ namespace RayTracer.Views
             if (_isRmbDown && Controller != null)
             {
                 Point currentPos = e.GetPosition(null);
-                float deltaX = (float)(currentPos.X - _lastMousePos.X);
-                float deltaY = (float)(currentPos.Y - _lastMousePos.Y);
+                float dx = (float)(currentPos.X - _lastMousePos.X);
+                float dy = (float)(currentPos.Y - _lastMousePos.Y);
                 _lastMousePos = currentPos;
 
-                Controller.RotateCamera(deltaX, deltaY);
+                Controller.RotateCamera(dx, dy);
             }
         }
     }

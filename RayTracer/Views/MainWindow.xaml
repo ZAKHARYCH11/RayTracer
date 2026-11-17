@@ -11,15 +11,18 @@
         MinWidth="1000" MinHeight="600" 
         FontFamily="Segoe UI"
         Background="{StaticResource WindowBg}"
-        KeyDown="Window_KeyDown"
-        KeyUp="Window_KeyUp">
+        PreviewKeyDown="Window_PreviewKeyDown"
+        KeyUp="Window_KeyUp"
+        Closing="Window_Closing">
 
     <DockPanel>
         <Menu DockPanel.Dock="Top" Padding="2">
             <MenuItem Header="Файл">
-                <MenuItem Header="Открыть сцену" Click="MenuOpenScene_Click"/>
-                <MenuItem Header="Сохранить сцену" Click="MenuSaveScene_Click"/>
-                <MenuItem Header="Выход" Click="MenuExit_Click"/>
+                <MenuItem Header="Открыть сцену" InputGestureText="Ctrl+O" Click="MenuOpenScene_Click"/>
+                <MenuItem Header="Сохранить сцену" InputGestureText="Ctrl+S" Click="MenuSaveScene_Click"/>
+                <MenuItem Header="Сохранить сцену как..." InputGestureText="Ctrl+Shift+S" Click="MenuSaveAsScene_Click"/>
+                <Separator Background="{StaticResource SelectedBg}"/>
+                <MenuItem Header="Выход" InputGestureText="Alt+F4" Click="MenuExit_Click"/>
             </MenuItem>
         </Menu>
 
@@ -35,15 +38,18 @@
         <Grid>
             <Grid.ColumnDefinitions>
 
-                <ColumnDefinition Width="220" />
+                <ColumnDefinition Width="250" />
 
                 <ColumnDefinition />
 
-                <ColumnDefinition Width="250" />
+                <ColumnDefinition Width="300" />
             </Grid.ColumnDefinitions>
 
 
-            <Grid Grid.Column="0" Background="{StaticResource PanelBg}" Margin="0,0,2,0" Focusable="True" MouseDown="ClearFocus_MouseDown">
+            <Grid Grid.Column="0" Background="{StaticResource PanelBg}" Margin="0,0,2,0"
+                  Focusable="True"
+                  MouseDown="ClearFocus_MouseDown"
+                  MouseLeftButtonDown="Deselect_MouseLeftButtonDown">
                 <Grid.RowDefinitions>
                     <RowDefinition Height="Auto"/>
 
@@ -63,7 +69,7 @@
                                 <MenuItem Header="Куб" Click="MenuAddCube_Click"/>
                                 <MenuItem Header="Цилиндр" Click="MenuAddCylinder_Click"/>
                                 <MenuItem Header="Глобальный свет" Click="MenuAddGlobalLight_Click"/>
-                                <MenuItem Header="Направленный свет свет" Click="MenuAddSpotLight_Click"/>
+                                <MenuItem Header="Направленный свет" Click="MenuAddSpotLight_Click"/>
                                 <MenuItem Header="Точечный свет" Click="MenuAddPointLight_Click"/>
                             </ContextMenu>
                         </Button.ContextMenu>
@@ -74,6 +80,7 @@
                 <ListBox x:Name="SceneObjectsList" Grid.Row="2" Margin="10,5,10,10" 
                          ToolTip="ПКМ для открытия меню объектов"
                          PreviewMouseRightButtonDown="SceneObjectsList_PreviewMouseRightButtonDown"
+                         PreviewMouseLeftButtonDown="SceneObjectsList_PreviewMouseLeftButtonDown"
                          SelectionChanged="SceneObjectsList_SelectionChanged">
 
                     <ListBox.ContextMenu>
@@ -98,8 +105,8 @@
                                 <Grid.ContextMenu>
                                     <ContextMenu>
                                         <MenuItem Header="Переименовать" Click="MenuRename_Click"/>
-                                        <MenuItem Header="Клонировать" Click="MenuClone_Click"/>
-                                        <MenuItem Header="Удалить" Click="MenuDelete_Click"/>
+                                        <MenuItem Header="Клонировать" InputGestureText="Ctrl+D" Click="MenuClone_Click"/>
+                                        <MenuItem Header="Удалить" InputGestureText="Del" Click="MenuDelete_Click"/>
                                     </ContextMenu>
                                 </Grid.ContextMenu>
                             </Grid>
@@ -111,6 +118,7 @@
 
             <Border Grid.Column="1" BorderBrush="{StaticResource BorderColor}" BorderThickness="1" Focusable="True" MouseDown="ClearFocus_MouseDown">
                 <glWpfControl:GLWpfControl x:Name="OpenGlControl" Render="OpenGlControl_Render"
+                                           MouseLeftButtonDown="Deselect_MouseLeftButtonDown"
                                            MouseRightButtonDown="OpenGlControl_MouseRightButtonDown"
                                            MouseRightButtonUp="OpenGlControl_MouseRightButtonUp"
                                            MouseMove="OpenGlControl_MouseMove"/>
@@ -123,7 +131,9 @@
                         <StackPanel x:Name="PropertiesContainer" Margin="10" Visibility="Hidden">
 
                             <TextBlock Text="Настройки объекта" FontWeight="Bold" FontSize="14" HorizontalAlignment="Center" Margin="0,5,0,15"/>
-                            
+
+                            <TextBlock x:Name="TxtObjType" Text="Тип объекта: " Margin="0,0,0,15"/>
+
                             <StackPanel x:Name="PanelCoordinates" Visibility="Collapsed" Margin="0,0,0,15">
                                 <TextBlock Text="Координаты (X, Y, Z)"/>
                                 <UniformGrid Columns="3" Margin="0,5,0,0">
@@ -208,12 +218,12 @@
 
                             <TextBlock Text="Режим предпросмотра"/>
                             <StackPanel Orientation="Horizontal" Margin="0,5,0,15">
-                                <RadioButton x:Name="RadioWireframe" Content="Каркас" IsChecked="True" Foreground="{StaticResource TextColor}" Margin="0,0,10,0"/>
-                                <RadioButton x:Name="RadioSolid" Content="Световые карты" Foreground="{StaticResource TextColor}"/>
+                                <RadioButton x:Name="RadioWireframe" Content="Каркас" IsChecked="True" Foreground="{StaticResource TextColor}" Margin="0,0,10,0" ToolTip="Отображение объектов линиями"/>
+                                <RadioButton x:Name="RadioSolid" Content="Световые карты" Foreground="{StaticResource TextColor}" ToolTip="Отображение объектов с наложенными световыми картами"/>
                             </StackPanel>
                             
                             <TextBlock Text="Глубина трассировки"/>
-                            <Grid Margin="0,5,0,15" Height="28">
+                            <Grid Margin="0,5,0,15" Height="28" ToolTip="Максимальное число переотражений луча">
                                 <Grid.ColumnDefinitions>
                                     <ColumnDefinition Width="*"/>
                                     <ColumnDefinition Width="40"/>
@@ -223,10 +233,10 @@
                             </Grid>
                             
 
-                            <Button x:Name="BtnRender" Content="Запустить рендер" FontWeight="Bold" FontSize="14" Padding="10" Background="#007ACC" BorderThickness="0" ToolTip="Запускает рендер световых карт всех объектов и отображает их"/>
+                            <Button x:Name="BtnRender" Content="Запустить рендер" FontWeight="Bold" FontSize="14" Padding="10" Background="#007ACC" BorderThickness="0" ToolTip="Запускает рендер световых карт всех объектов и отображает их (F5)"/>
 
                             <TextBlock Text="Предпросмотр световой карты" Margin="0,20,0,5" HorizontalAlignment="Center"/>
-                            <Border BorderBrush="{StaticResource BorderColor}" BorderThickness="1" Width="220" Height="220" Background="{StaticResource DarkBg}">
+                            <Border BorderBrush="{StaticResource BorderColor}" BorderThickness="1" Width="270" Height="270" Background="{StaticResource DarkBg}">
 
                                 <Image x:Name="LightmapPreviewImage" Stretch="Uniform"
                                        Cursor="Hand" ToolTip="Нажмите для открытия в полном размере"

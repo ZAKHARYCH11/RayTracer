@@ -10,6 +10,8 @@ using System.Windows;
 using System.Windows.Media;
 using System.Windows.Media.Imaging;
 
+using MessageBox = System.Windows.MessageBox;
+
 namespace RayTracer.Controllers
 {
     /// <summary>
@@ -21,6 +23,8 @@ namespace RayTracer.Controllers
         private Scene _scene;
         private RayTracerEngine _engine;
         private bool _isUpdatingUI = false;
+        private string? _currentFilePath = null;
+        private bool _isDirty = false;
 
         /// <summary>
         /// Сцена геометрических приметивов и источников света
@@ -34,6 +38,7 @@ namespace RayTracer.Controllers
             _scene = new Scene();
 
             InitializeStartScene();
+            UpdateWindowTitle();
 
             _view.BtnRender.Click += OnRenderClicked;
         }
@@ -45,7 +50,7 @@ namespace RayTracer.Controllers
         {
             _scene.Skybox = new Skybox(new Vector3(0.49f, 0.75f, 1.0f), new Vector3(0.2f, 0.2f, 0.2f));
 
-            _scene.MainCamera = new Camera("Камера", new Vector3(0, 0, 1.5f), new Vector3(0, 0, -1), new Vector3(0, 1, 0), 75f);
+            _scene.MainCamera = new Camera("Камера", new Vector3(0, 0, 1.5f), new Vector3(0, 0, -1), new Vector3(0, 1, 0), 75f, 2.0f, 0.005f);
 
             var floorMaterial = new Material(new Vector3(0.5f, 0.5f, 0.5f), 0.1f);
             _scene.Objects.Add(new Cube("Пол", new Vector3(0, -5.5f, 0), 10f, floorMaterial, 4096));
@@ -56,6 +61,29 @@ namespace RayTracer.Controllers
             _scene.Lights.Add(new GlobalLight("Солнце", new Vector3(1, 1, 1), 1.0f, new Vector3(-1, -1, -1)));
 
             UpdateHierarchyView();
+        }
+
+        /// <summary>
+        /// Обновление заголовка окна, статус открытого файла
+        /// </summary>
+        private void UpdateWindowTitle()
+        {
+            string fileName = string.IsNullOrEmpty(_currentFilePath)
+                ? "Безымянный.json"
+                : System.IO.Path.GetFileName(_currentFilePath);
+
+            string dirtyMark = _isDirty ? "*" : "";
+            _view.Title = $"Трассировщик лучей — {fileName}{dirtyMark}";
+        }
+
+        /// <summary>
+        /// Пометка сцены как изменённой
+        /// </summary>
+        private void MarkDirty()
+        {
+            if (_isDirty) return;
+            _isDirty = true;
+            UpdateWindowTitle();
         }
 
         /// <summary>
@@ -82,6 +110,7 @@ namespace RayTracer.Controllers
             string name = GetUniqueName("Новая сфера");
             _scene.Objects.Add(new Sphere(name, new Vector3(0, 0, 0), 0.5f, new Material(new Vector3(0.8f, 0.8f, 0.8f))));
             UpdateHierarchyView();
+            MarkDirty();
         }
 
         /// <summary>
@@ -92,6 +121,7 @@ namespace RayTracer.Controllers
             string name = GetUniqueName("Новый куб");
             _scene.Objects.Add(new Cube(name, new Vector3(0, 0, 0), 1.0f, new Material(new Vector3(0.8f, 0.8f, 0.8f))));
             UpdateHierarchyView();
+            MarkDirty();
         }
 
         /// <summary>
@@ -102,6 +132,7 @@ namespace RayTracer.Controllers
             string name = GetUniqueName("Новый цилиндр");
             _scene.Objects.Add(new Cylinder(name, new Vector3(0, 0, 0), 0.5f, 1.0f, new Material(new Vector3(0.8f, 0.8f, 0.8f))));
             UpdateHierarchyView();
+            MarkDirty();
         }
 
         /// <summary>
@@ -112,6 +143,7 @@ namespace RayTracer.Controllers
             string name = GetUniqueName("Новый глобальный свет");
             _scene.Lights.Add(new GlobalLight(name, new Vector3(1, 1, 1), 1.0f, new Vector3(0, -1, 0)));
             UpdateHierarchyView();
+            MarkDirty();
         }
 
         /// <summary>
@@ -122,6 +154,7 @@ namespace RayTracer.Controllers
             string name = GetUniqueName("Новый направленный свет");
             _scene.Lights.Add(new SpotLight(name, new Vector3(1, 1, 1), 1.0f, new Vector3(0, 0, 0), new Vector3(0, -1, 0), 30f, 10f));
             UpdateHierarchyView();
+            MarkDirty();
         }
 
         /// <summary>
@@ -132,6 +165,7 @@ namespace RayTracer.Controllers
             string name = GetUniqueName("Новый точечный свет");
             _scene.Lights.Add(new PointLight(name, new Vector3(1, 1, 1), 1.0f, new Vector3(0, 0, 0), 10f));
             UpdateHierarchyView();
+            MarkDirty();
         }
 
         /// <summary>
@@ -142,20 +176,30 @@ namespace RayTracer.Controllers
             var selected = _view.SceneObjectsList.SelectedItem;
             if (selected == null || selected is Camera) return;
 
+            object? newItem = null;
+
             if (selected is SceneObject obj)
             {
                 var clone = obj.Clone();
                 clone.Name = GetUniqueName(obj.Name);
                 _scene.Objects.Add(clone);
+                newItem = clone;
             }
             else if (selected is Light light)
             {
                 var clone = light.Clone();
                 clone.Name = GetUniqueName(light.Name);
                 _scene.Lights.Add(clone);
+                newItem = clone;
             }
 
             UpdateHierarchyView();
+
+            if (newItem != null)
+            {
+                _view.SceneObjectsList.SelectedItem = newItem;
+                MarkDirty();
+            }
         }
 
         /// <summary>
@@ -166,12 +210,23 @@ namespace RayTracer.Controllers
             var selected = _view.SceneObjectsList.SelectedItem;
             if (selected == null || selected is Camera) return;
 
+            string objectName = selected.ToString() ?? "объект";
+            var result = MessageBox.Show(
+                $"Вы действительно хотите удалить \"{objectName}\"? Это действие нельзя отменить.",
+                "Подтверждение удаления",
+                MessageBoxButton.YesNo,
+                MessageBoxImage.Question);
+
+            if (result != MessageBoxResult.Yes) return;
+
             if (selected is SceneObject obj)
                 _scene.Objects.Remove(obj);
             else if (selected is Light light)
                 _scene.Lights.Remove(light);
 
             UpdateHierarchyView();
+            OnObjectSelected(null);
+            MarkDirty();
         }
 
         /// <summary>
@@ -213,64 +268,161 @@ namespace RayTracer.Controllers
                     l.Color = newColor;
 
                 UpdateColorButtonUI(newColor);
+                MarkDirty();
             }
         }
 
         /// <summary>
-        /// Сохранение сцены
+        /// Проверяет несохранённые изменения перед выходом или открытием другой сцены
         /// </summary>
-        public void SaveScene()
+        /// <returns>true, если можно продолжать действие, false, если пользователь отменил</returns>
+        public bool ConfirmUnsavedChanges()
+        {
+            if (!_isDirty) return true;
+
+            string fileName = string.IsNullOrEmpty(_currentFilePath)
+                ? "Безымянный.json"
+                : System.IO.Path.GetFileName(_currentFilePath);
+
+            var result = MessageBox.Show(
+                $"В сцене \"{fileName}\" есть несохранённые изменения.\nСохранить изменения?",
+                "Несохранённые изменения",
+                MessageBoxButton.YesNoCancel,
+                MessageBoxImage.Warning);
+
+            if (result == MessageBoxResult.Yes)
+            {
+                return SaveScene();
+            }
+
+            if (result == MessageBoxResult.No)
+            {
+                return true;
+            }
+
+            return false;
+        }
+
+        /// <summary>
+        /// Обычное сохранение сцены
+        /// </summary>
+        public bool SaveScene()
+        {
+            if (string.IsNullOrEmpty(_currentFilePath))
+            {
+                return SaveSceneAs();
+            }
+
+            return WriteSceneToFile(_currentFilePath);
+        }
+
+        /// <summary>
+        /// Сохранение сцены в конкретный файл
+        /// </summary>
+        public bool SaveSceneAs()
         {
             var dialog = new Microsoft.Win32.SaveFileDialog
             {
                 Title = "Сохранить сцену",
                 Filter = "RayTracer Scene (*.json)|*.json",
-                DefaultExt = ".json"
+                DefaultExt = ".json",
+                FileName = string.IsNullOrEmpty(_currentFilePath)
+                    ? "Безымянный"
+                    : System.IO.Path.GetFileNameWithoutExtension(_currentFilePath)
             };
 
-            if (dialog.ShowDialog() == true)
+            bool? result;
+            _view.SetOpenGLPaused(true);
+            try
             {
-                try
-                {
-                    SceneSerializer.SaveScene(_scene, dialog.FileName);
-                    System.Windows.MessageBox.Show("Сцена успешно сохранена!", "Сохранение", MessageBoxButton.OK, MessageBoxImage.Information);
-                }
-                catch (Exception ex)
-                {
-                    System.Windows.MessageBox.Show($"Ошибка при сохранении:\n{ex.Message}", "Ошибка", MessageBoxButton.OK, MessageBoxImage.Error);
-                }
+                result = dialog.ShowDialog(_view);
+            }
+            finally
+            {
+                _view.SetOpenGLPaused(false);
+            }
+
+            if (result == true)
+            {
+                return WriteSceneToFile(dialog.FileName);
+            }
+
+            return false;
+        }
+
+        /// <summary>
+        /// Запись сцены по указанному пути
+        /// </summary>
+        private bool WriteSceneToFile(string filePath)
+        {
+            try
+            {
+                SceneSerializer.SaveScene(_scene, filePath);
+                _currentFilePath = filePath;
+                _isDirty = false;
+                UpdateWindowTitle();
+                _view.StatusText.Text = $"Сцена сохранена: {System.IO.Path.GetFileName(filePath)}";
+                return true;
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show($"Ошибка при сохранении:\n{ex.Message}", "Ошибка", MessageBoxButton.OK, MessageBoxImage.Error);
+                return false;
             }
         }
 
         /// <summary>
         /// Загрузка сцены
         /// </summary>
-        public void LoadScene()
+        public async void LoadScene()
         {
+            if (!ConfirmUnsavedChanges()) return;
+
             var dialog = new Microsoft.Win32.OpenFileDialog
             {
                 Title = "Открыть сцену",
                 Filter = "RayTracer Scene (*.json)|*.json"
             };
 
-            if (dialog.ShowDialog() == true)
+            bool? result;
+            _view.SetOpenGLPaused(true);
+            try
             {
+                result = dialog.ShowDialog(_view);
+            }
+            finally
+            {
+                _view.SetOpenGLPaused(false);
+            }
+
+            if (result == true)
+            {
+                string fileName = dialog.FileName;
+                _view.StatusText.Text = "Загрузка сцены...";
+
                 try
                 {
-                    Scene loadedScene = SceneSerializer.LoadScene(dialog.FileName);
+                    Scene? loadedScene = await Task.Run(() => SceneSerializer.LoadScene(fileName));
 
                     if (loadedScene != null)
                     {
                         _scene = loadedScene;
+                        _currentFilePath = fileName;
+                        _isDirty = false;
+                        UpdateWindowTitle();
+
+                        _view.ClearTextureCache();
                         UpdateHierarchyView();
                         _view.SceneObjectsList.SelectedItem = null;
+                        OnObjectSelected(null);
 
-                        System.Windows.MessageBox.Show("Сцена успешно загружена!", "Загрузка", MessageBoxButton.OK, MessageBoxImage.Information);
+                        _view.StatusText.Text = $"Сцена загружена: {System.IO.Path.GetFileName(fileName)}";
                     }
                 }
                 catch (Exception ex)
                 {
-                    System.Windows.MessageBox.Show($"Ошибка при загрузке:\n{ex.Message}", "Ошибка", MessageBoxButton.OK, MessageBoxImage.Error);
+                    _view.StatusText.Text = "Ошибка загрузки сцены";
+                    MessageBox.Show($"Ошибка при загрузке:\n{ex.Message}", "Ошибка", MessageBoxButton.OK, MessageBoxImage.Error);
                 }
             }
         }
@@ -278,27 +430,11 @@ namespace RayTracer.Controllers
         /// <summary>
         /// Вращение камеры
         /// </summary>
-        /// <param name="deltaX">Изменение координат мыши по X</param>
-        /// <param name="deltaY">Изменение координат мыши по Y</param>
-        public void RotateCamera(float deltaX, float deltaY)
+        /// <param name="dx">Изменение координат мыши по X</param>
+        /// <param name="dy">Изменение координат мыши по Y</param>
+        public void RotateCamera(float dx, float dy)
         {
-            float sensitivity = 0.005f;
-            Camera cam = _scene.MainCamera;
-
-            float pitch = (float)Math.Asin(cam.Direction.Y);
-            float yaw = (float)Math.Atan2(cam.Direction.Z, cam.Direction.X);
-
-            yaw += deltaX * sensitivity;
-            pitch -= deltaY * sensitivity;
-
-            float limit = MathHelper.DegreesToRadians(89.0f);
-            pitch = Math.Clamp(pitch, -limit, limit);
-
-            cam.Direction = new Vector3(
-                (float)(Math.Cos(pitch) * Math.Cos(yaw)),
-                (float)Math.Sin(pitch),
-                (float)(Math.Cos(pitch) * Math.Sin(yaw))
-            ).Normalized();
+            _scene.MainCamera.Rotate(dx, dy);
 
             RefreshCameraUI();
         }
@@ -306,30 +442,15 @@ namespace RayTracer.Controllers
         /// <summary>
         /// Перемещение камеры
         /// </summary>
-        /// <param name="w">Нажата ли клавиша W</param>
-        /// <param name="a">Нажата ли клавиша A</param>
-        /// <param name="s">Нажата ли клавиша S</param>
-        /// <param name="d">Нажата ли клавиша D</param>
+        /// <param name="dx">Направление по X</param>
+        /// <param name="dy">Направление по Y</param>
         /// <param name="shift">Нажата ли клавиша Shift</param>
         /// <param name="deltaTime">Пройденное время между кадрами</param>
-        public void MoveCamera(bool w, bool a, bool s, bool d, bool shift, float deltaTime)
+        public void MoveCamera(int dx, int dy, bool shift, float deltaTime)
         {
-            float speed = 2.0f * deltaTime;
-            if (shift) speed *= 2.0f;
+            _scene.MainCamera.Move(dx, dy, shift, deltaTime);
 
-            Camera cam = _scene.MainCamera;
-
-            Vector3 forward = cam.Direction;
-            Vector3 right = Vector3.Cross(forward, cam.Up).Normalized();
-
-            bool moved = false;
-
-            if (w) { cam.Position += forward * speed; moved = true; }
-            if (s) { cam.Position -= forward * speed; moved = true; }
-            if (d) { cam.Position += right * speed; moved = true; }
-            if (a) { cam.Position -= right * speed; moved = true; }
-
-            if (moved) RefreshCameraUI();
+            if (dx != 0 || dy != 0) RefreshCameraUI();
         }
 
         /// <summary>
@@ -352,6 +473,7 @@ namespace RayTracer.Controllers
 
                 _isUpdatingUI = false;
             }
+            MarkDirty();
         }
 
         /// <summary>
@@ -363,6 +485,7 @@ namespace RayTracer.Controllers
             if (selectedItem == null)
             {
                 _view.PropertiesContainer.Visibility = Visibility.Hidden;
+                _view.LightmapPreviewImage.Source = null;
                 return;
             }
 
@@ -374,6 +497,7 @@ namespace RayTracer.Controllers
 
             if (selectedItem is Camera cam)
             {
+                _view.TxtObjType.Text = "Тип объекта: Камера";
                 _view.PanelCoordinates.Visibility = Visibility.Visible;
                 _view.PanelDirection.Visibility = Visibility.Visible;
                 _view.PanelCamera.Visibility = Visibility.Visible;
@@ -405,16 +529,19 @@ namespace RayTracer.Controllers
 
                 if (obj is Sphere sphere)
                 {
+                    _view.TxtObjType.Text = "Тип объекта: Сфера";
                     _view.PanelSphere.Visibility = Visibility.Visible;
                     _view.Radius.Text = sphere.Radius.ToString("0.00", culture);
                 }
                 else if (obj is Cube cube)
                 {
+                    _view.TxtObjType.Text = "Тип объекта: Куб";
                     _view.PanelCube.Visibility = Visibility.Visible;
                     _view.Side.Text = cube.Side.ToString("0.00", culture);
                 }
                 else if (obj is Cylinder cyl)
                 {
+                    _view.TxtObjType.Text = "Тип объекта: Цилиндр";
                     _view.PanelCylinder.Visibility = Visibility.Visible;
                     _view.CylRadius.Text = cyl.Radius.ToString("0.00", culture);
                     _view.Height.Text = cyl.Height.ToString("0.00", culture);
@@ -429,6 +556,7 @@ namespace RayTracer.Controllers
 
                 if (light is GlobalLight gl)
                 {
+                    _view.TxtObjType.Text = "Тип объекта: Глобальный источник света";
                     _view.PanelDirection.Visibility = Visibility.Visible;
                     _view.DirX.Text = gl.Direction.X.ToString("0.00", culture);
                     _view.DirY.Text = gl.Direction.Y.ToString("0.00", culture);
@@ -436,6 +564,7 @@ namespace RayTracer.Controllers
                 }
                 else if (light is PointLight pl)
                 {
+                    _view.TxtObjType.Text = "Тип объекта: Точечный источник света";
                     _view.PanelCoordinates.Visibility = Visibility.Visible;
                     _view.PanelLightRange.Visibility = Visibility.Visible;
                     _view.PosX.Text = pl.Position.X.ToString("0.00", culture);
@@ -446,6 +575,7 @@ namespace RayTracer.Controllers
                 }
                 else if (light is SpotLight sl)
                 {
+                    _view.TxtObjType.Text = "Тип объекта: Направленный источник света";
                     _view.PanelCoordinates.Visibility = Visibility.Visible;
                     _view.PanelLightRange.Visibility = Visibility.Visible;
                     _view.PosX.Text = sl.Position.X.ToString("0.00", culture);
@@ -567,6 +697,7 @@ namespace RayTracer.Controllers
                     sl.Range = lightRange;
                 }
             }
+            MarkDirty();
         }
 
         /// <summary>
@@ -584,6 +715,7 @@ namespace RayTracer.Controllers
 
             if (traceDepth < 1 || traceDepth > 10)
                 _view.TraceDepth.Text = Math.Clamp(traceDepth, 1, 10).ToString();
+            MarkDirty();
         }
 
         /// <summary>
@@ -595,6 +727,7 @@ namespace RayTracer.Controllers
 
             int traceDepth = (int)_view.SliderTraceDepth.Value;
             _view.TraceDepth.Text = traceDepth.ToString();
+            MarkDirty();
         }
 
         /// <summary>
@@ -627,6 +760,8 @@ namespace RayTracer.Controllers
                 _view.SceneObjectsList.Items.Refresh();
             });
 
+            MarkDirty();
+
             return true;
         }
 
@@ -658,22 +793,31 @@ namespace RayTracer.Controllers
         }
 
         /// <summary>
+        /// Обработка нажатия кнопки рендера
+        /// </summary>
+        private void OnRenderClicked(object sender, RoutedEventArgs e)
+        {
+            StartRender();
+        }
+
+        /// <summary>
         /// Запуск рендера световой карты
         /// </summary>
-        private async void OnRenderClicked(object sender, RoutedEventArgs e)
+        public async void StartRender()
         {
+            if (!_view.BtnRender.IsEnabled) return;
+
             int traceDepth = (int)_view.SliderTraceDepth.Value;
 
             _view.BtnRender.IsEnabled = false;
-            _view.StatusText.Text = $"Запекание световых карт... Пожалуйста, подождите.";
+            _view.StatusText.Text = "Запекание световых карт... Пожалуйста, подождите.";
 
             _scene.MainCamera.CalculateVectors(1.0f);
 
-            Vector3 cameraPosition = _scene.MainCamera.Position;
-
             Stopwatch sw = Stopwatch.StartNew();
+            Vector3 bakeCameraPos = _scene.MainCamera.Position;
 
-            await Task.Run(() => _engine.BakeLightmaps(_scene, traceDepth, cameraPosition));
+            await Task.Run(() => _engine.BakeLightmaps(_scene, traceDepth, bakeCameraPos));
 
             sw.Stop();
 
@@ -684,6 +828,8 @@ namespace RayTracer.Controllers
             _view.BtnRender.IsEnabled = true;
             _view.StatusText.Text = "Готов к работе";
             _view.RenderTimeText.Text = $"Время запекания: {sw.ElapsedMilliseconds / 1000.0:F2} с";
+
+            MarkDirty();
         }
 
         /// <summary>

@@ -12,6 +12,7 @@
         <SolidColorBrush x:Key="TextColor" Color="#F1F1F1"/>
         <SolidColorBrush x:Key="BorderColor" Color="#3F3F46"/>
         <SolidColorBrush x:Key="DarkBg" Color="#1E1E1E" />
+        <SolidColorBrush x:Key="SecondTextColor" Color="#A0A0A0"/>
 
         <Style TargetType="TextBlock">
             <Setter Property="Foreground" Value="{StaticResource TextColor}"/>
@@ -194,10 +195,27 @@
                     <ControlTemplate TargetType="MenuItem">
                         <Border x:Name="Border" Background="{TemplateBinding Background}" BorderThickness="0">
                             <Grid>
-                                <ContentPresenter ContentSource="Header" Margin="{TemplateBinding Padding}" RecognizesAccessKey="True" />
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="*"/>
+                                    <ColumnDefinition Width="Auto"/>
+                                </Grid.ColumnDefinitions>
 
-                                <Popup x:Name="Popup" Placement="Right" IsOpen="{TemplateBinding IsSubmenuOpen}" AllowsTransparency="True" Focusable="False">
-                                    <Border Background="{StaticResource DarkBg}" BorderBrush="{StaticResource BorderColor}" BorderThickness="1" Margin="0,0,5,5">
+                                <ContentPresenter Grid.Column="0"
+                                                  ContentSource="Header"
+                                                  Margin="{TemplateBinding Padding}"
+                                                  VerticalAlignment="Center"
+                                                  RecognizesAccessKey="True" />
+
+                                <TextBlock x:Name="GestureText"
+                                           Grid.Column="1"
+                                           Text="{TemplateBinding InputGestureText}"
+                                           Foreground="{StaticResource SecondTextColor}"
+                                           VerticalAlignment="Center"
+                                           HorizontalAlignment="Right"
+                                           Margin="20,5,15,5"/>
+
+                                <Popup x:Name="Popup" Grid.ColumnSpan="2" Placement="Right" IsOpen="{TemplateBinding IsSubmenuOpen}" AllowsTransparency="True" Focusable="False">
+                                    <Border Background="{StaticResource PanelBg}" BorderBrush="{StaticResource BorderColor}" BorderThickness="1" Margin="0,0,5,5">
                                         <StackPanel IsItemsHost="True" KeyboardNavigation.DirectionalNavigation="Cycle"/>
                                     </Border>
                                 </Popup>
@@ -207,9 +225,11 @@
                             <Trigger Property="IsHighlighted" Value="True">
                                 <Setter TargetName="Border" Property="Background" Value="{StaticResource SelectedBg}"/>
                             </Trigger>
-
                             <Trigger Property="Role" Value="TopLevelHeader">
                                 <Setter TargetName="Popup" Property="Placement" Value="Bottom"/>
+                            </Trigger>
+                            <Trigger Property="InputGestureText" Value="">
+                                <Setter TargetName="GestureText" Property="Visibility" Value="Collapsed"/>
                             </Trigger>
                         </ControlTemplate.Triggers>
                     </ControlTemplate>

@@ -112,7 +112,7 @@ namespace RayTracer.Models
         /// </summary>
         /// <param name="u">Координата u</param>
         /// <param name="v">Координата v</param>
-        /// <param name="point">Точка поверхности</param>
+        /// <param name="posiotion">Точка поверхности</param>
         /// <param name="normal">Нормаль к точке</param>
         /// <returns>true, если перевод успешный</returns>
         public abstract bool TryGetSurfaceData(float u, float v, out Vector3 posiotion, out Vector3 normal);

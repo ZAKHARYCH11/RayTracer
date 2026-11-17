@@ -14,6 +14,8 @@ namespace RayTracer.Models
         private Vector3 _direction;
         private Vector3 _up;
         private float _fovDegrees;
+        private float _speed;
+        private float _sensitivity;
 
         /// <summary>
         /// Имя камеры
@@ -78,13 +80,16 @@ namespace RayTracer.Models
         /// <param name="direction">Направление камеры</param>
         /// <param name="up">Вектор "верха"</param>
         /// <param name="fovDegrees">Вертикальный угол обзора (в градусах)</param>
-        public Camera(string name, Vector3 position, Vector3 direction, Vector3 up, float fovDegrees)
+        /// <param name="speed">Скорость перемещения</param>
+        public Camera(string name, Vector3 position, Vector3 direction, Vector3 up, float fovDegrees, float speed, float sensitivity)
         {
             _name = name;
             _position = position;
             _direction = direction;
             _up = up;
             _fovDegrees = fovDegrees;
+            _speed = speed;
+            _sensitivity = sensitivity;
         }
 
         /// <summary>
@@ -108,15 +113,40 @@ namespace RayTracer.Models
         }
 
         /// <summary>
-        /// Генерирует луч из камеры через заданную точку на экране
+        /// Перемещение камеры
         /// </summary>
-        /// <param name="u">Горизонтальная координата экрана (от 0 до 1)</param>
-        /// <param name="v">Вертикальная координата экрана (от 0 до 1)</param>
-        /// <returns>Луч, летящий из камеры в 3D сцену</returns>
-        public Ray GetRay(float u, float v)
+        /// <param name="dx">Направление по X</param>
+        /// <param name="dy">Направление по Y</param>
+        /// <param name="shift">Нажата ли клавиша shift</param>
+        /// <param name="deltaTime">Пройденное время</param>
+        public void Move(int dx, int dy, bool shift, float deltaTime)
         {
-            Vector3 direction = _lowerLeftCorner + u * _horizontal + v * _vertical - _position;
-            return new Ray(_position, direction);
+            float speed = _speed * deltaTime;
+            if(shift) speed *= 2;
+
+            _forward = -_direction;
+            _right = Vector3.Cross(_up, _forward).Normalized();
+
+            _position += dx * _direction * speed;
+            _position += dy * _right * speed;
+        }
+
+        public void Rotate(float dx, float dy)
+        {
+            float pitch = (float)Math.Asin(_direction.Y);
+            float yaw = (float)Math.Atan2(_direction.Z, _direction.X);
+
+            yaw += dx * _sensitivity;
+            pitch -= dy * _sensitivity;
+
+            float limit = MathHelper.DegreesToRadians(89.0f);
+            pitch = Math.Clamp(pitch, -limit, limit);
+
+            _direction = new Vector3(
+                (float)(Math.Cos(pitch) * Math.Cos(yaw)),
+                (float)Math.Sin(pitch),
+                (float)(Math.Cos(pitch) * Math.Sin(yaw))
+            ).Normalized();
         }
 
         public override string ToString()
