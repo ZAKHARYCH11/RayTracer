@@ -3,7 +3,7 @@ using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
 using OpenTK.Mathematics;
 
-namespace RayTracer.Models
+namespace RayTracer.Utils
 {
     /// <summary>
     /// Конвертер для правильного сохранения векторов OpenTK в JSON

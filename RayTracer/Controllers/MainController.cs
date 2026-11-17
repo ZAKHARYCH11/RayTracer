@@ -1,6 +1,7 @@
 ﻿using OpenTK.Graphics.GL;
 using OpenTK.Mathematics;
 using RayTracer.Models;
+using RayTracer.Utils;
 using RayTracer.Views;
 using System;
 using System.Diagnostics;
@@ -23,8 +24,8 @@ namespace RayTracer.Controllers
         private Scene _scene;
         private RayTracerEngine _engine;
         private bool _isUpdatingUI = false;
-        private string? _currentFilePath = null;
         private bool _isDirty = false;
+        private string? _currentFilePath = null;
 
         /// <summary>
         /// Сцена геометрических приметивов и источников света
@@ -107,7 +108,7 @@ namespace RayTracer.Controllers
         /// </summary>
         public void AddSphere()
         {
-            string name = GetUniqueName("Новая сфера");
+            string name = _scene.GetUniqueName("Новая сфера");
             _scene.Objects.Add(new Sphere(name, new Vector3(0, 0, 0), 0.5f, new Material(new Vector3(0.8f, 0.8f, 0.8f))));
             UpdateHierarchyView();
             MarkDirty();
@@ -118,7 +119,7 @@ namespace RayTracer.Controllers
         /// </summary>
         public void AddCube()
         {
-            string name = GetUniqueName("Новый куб");
+            string name = _scene.GetUniqueName("Новый куб");
             _scene.Objects.Add(new Cube(name, new Vector3(0, 0, 0), 1.0f, new Material(new Vector3(0.8f, 0.8f, 0.8f))));
             UpdateHierarchyView();
             MarkDirty();
@@ -129,7 +130,7 @@ namespace RayTracer.Controllers
         /// </summary>
         public void AddCylinder()
         {
-            string name = GetUniqueName("Новый цилиндр");
+            string name = _scene.GetUniqueName("Новый цилиндр");
             _scene.Objects.Add(new Cylinder(name, new Vector3(0, 0, 0), 0.5f, 1.0f, new Material(new Vector3(0.8f, 0.8f, 0.8f))));
             UpdateHierarchyView();
             MarkDirty();
@@ -140,7 +141,7 @@ namespace RayTracer.Controllers
         /// </summary>
         public void AddGlobalLight()
         {
-            string name = GetUniqueName("Новый глобальный свет");
+            string name = _scene.GetUniqueName("Новый глобальный свет");
             _scene.Lights.Add(new GlobalLight(name, new Vector3(1, 1, 1), 1.0f, new Vector3(0, -1, 0)));
             UpdateHierarchyView();
             MarkDirty();
@@ -151,7 +152,7 @@ namespace RayTracer.Controllers
         /// </summary>
         public void AddSpotLight()
         {
-            string name = GetUniqueName("Новый направленный свет");
+            string name = _scene.GetUniqueName("Новый направленный свет");
             _scene.Lights.Add(new SpotLight(name, new Vector3(1, 1, 1), 1.0f, new Vector3(0, 0, 0), new Vector3(0, -1, 0), 30f, 10f));
             UpdateHierarchyView();
             MarkDirty();
@@ -162,7 +163,7 @@ namespace RayTracer.Controllers
         /// </summary>
         public void AddPointLight()
         {
-            string name = GetUniqueName("Новый точечный свет");
+            string name = _scene.GetUniqueName("Новый точечный свет");
             _scene.Lights.Add(new PointLight(name, new Vector3(1, 1, 1), 1.0f, new Vector3(0, 0, 0), 10f));
             UpdateHierarchyView();
             MarkDirty();
@@ -181,14 +182,14 @@ namespace RayTracer.Controllers
             if (selected is SceneObject obj)
             {
                 var clone = obj.Clone();
-                clone.Name = GetUniqueName(obj.Name);
+                clone.Name = _scene.GetUniqueName(obj.Name);
                 _scene.Objects.Add(clone);
                 newItem = clone;
             }
             else if (selected is Light light)
             {
                 var clone = light.Clone();
-                clone.Name = GetUniqueName(light.Name);
+                clone.Name = _scene.GetUniqueName(light.Name);
                 _scene.Lights.Add(clone);
                 newItem = clone;
             }
@@ -741,11 +742,7 @@ namespace RayTracer.Controllers
             string currentName = target.ToString();
             if (currentName == newName) return true;
 
-            bool nameExists = _scene.Objects.Exists(o => o.Name == newName) ||
-                              _scene.Lights.Exists(l => l.Name == newName) ||
-                              (_scene.MainCamera != null && _scene.MainCamera.Name == newName);
-
-            if (nameExists)
+            if (_scene.IsNameTaken(newName))
             {
                 return false;
             }
@@ -763,33 +760,6 @@ namespace RayTracer.Controllers
             MarkDirty();
 
             return true;
-        }
-
-        /// <summary>
-        /// Генератор уникальных имен
-        /// </summary>
-        /// <returns>Уникальное имя</returns>
-        private string GetUniqueName(string originalName)
-        {
-            string baseName = originalName;
-            int lastSpace = originalName.LastIndexOf(" (");
-            if (lastSpace > 0 && originalName.EndsWith(")"))
-                baseName = originalName.Substring(0, lastSpace);
-
-            string newName = baseName;
-            int count = 1;
-
-            bool NameExists(string name)
-            {
-                return _scene.Lights.Exists(l => l.Name == name) || _scene.Objects.Exists(o => o.Name == name) || (_scene.MainCamera != null && _scene.MainCamera.Name == name);
-            }
-
-            while (NameExists(newName))
-            {
-                newName = $"{baseName} ({count})";
-                count++;
-            }
-            return newName;
         }
 
         /// <summary>

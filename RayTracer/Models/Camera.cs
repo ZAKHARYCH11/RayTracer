@@ -62,6 +62,24 @@ namespace RayTracer.Models
             set { _fovDegrees = value; }
         }
 
+        /// <summary>
+        /// Скорость перемещения
+        /// </summary>
+        public float Speed
+        {
+            get { return _speed; }
+            set { _speed = value; }
+        }
+
+        /// <summary>
+        /// Чувствительность мыши
+        /// </summary>
+        public float Sensitivity
+        {
+            get { return _sensitivity; }
+            set { _sensitivity = value; }
+        }
+
         // Вектора ориентации камеры
         private Vector3 _forward;
         private Vector3 _right;

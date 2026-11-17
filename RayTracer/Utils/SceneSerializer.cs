@@ -1,7 +1,8 @@
 ﻿using System.IO;
 using Newtonsoft.Json;
+using RayTracer.Models;
 
-namespace RayTracer.Models
+namespace RayTracer.Utils
 {
     /// <summary>
     /// Класс для сохранения и загрузки сцены в формате JSON

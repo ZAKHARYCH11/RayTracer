@@ -9,9 +9,6 @@
         private List<SceneObject> _objects;
         private List<Light> _lights;
         private Skybox _skybox;
-        private byte[] _lightmapData;
-        private int _lightmapWidth;
-        private int _lightmapHeight;
 
         /// <summary>
         /// Камера
@@ -49,33 +46,6 @@
             set { _skybox = value; }
         }
 
-        /// <summary>
-        /// Массив пикселей
-        /// </summary>
-        public byte[] LightmapData
-        {
-            get { return _lightmapData; }
-            set { _lightmapData = value; }
-        }
-
-        /// <summary>
-        /// Ширина световой карты
-        /// </summary>
-        public int LightmapWidth
-        {
-            get { return _lightmapWidth; }
-            set { _lightmapWidth = value; }
-        }
-
-        /// <summary>
-        /// Высота световой карты
-        /// </summary>
-        public int LightmapHeight
-        {
-            get { return _lightmapHeight; }
-            set { _lightmapHeight = value; }
-        }
-
         public Scene()
         {
             _objects = new List<SceneObject>();
@@ -108,6 +78,42 @@
             }
 
             return hitAnything;
+        }
+
+        /// <summary>
+        /// Проверяет, занято ли указанное имя кем-либо
+        /// </summary>
+        /// <param name="name">Проверяемое имя</param>
+        /// <returns>true, если имя уже используется</returns>
+        public bool IsNameTaken(string name)
+        {
+            return _objects.Exists(o => o.Name == name) ||
+                   _lights.Exists(l => l.Name == name) ||
+                   (MainCamera != null && MainCamera.Name == name);
+        }
+
+        /// <summary>
+        /// Генератор уникальных имен
+        /// </summary>
+        /// <param name="originalName">Исходное имя</param>
+        /// <returns>Уникальное имя</returns>
+        public string GetUniqueName(string originalName)
+        {
+            string baseName = originalName;
+            int lastSpace = originalName.LastIndexOf(" (");
+            if (lastSpace > 0 && originalName.EndsWith(")"))
+                baseName = originalName.Substring(0, lastSpace);
+
+            string newName = baseName;
+            int count = 1;
+
+            while (IsNameTaken(newName))
+            {
+                newName = $"{baseName} ({count})";
+                count++;
+            }
+
+            return newName;
         }
     }
 }
