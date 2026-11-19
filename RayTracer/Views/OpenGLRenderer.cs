@@ -28,8 +28,9 @@ namespace RayTracer.Views
         /// <param name="scene">Отрисовываемая сцена</param>
         /// <param name="viewportWidth">Ширина области просмотра</param>
         /// <param name="viewportHeight">Высота области просмотра</param>
-        /// <param name="isSolid">True — режим световых карт, False — каркас</param>
-        public void Render(Scene scene, double viewportWidth, double viewportHeight, bool isSolid)
+        /// <param name="isSolid">true — режим световых карт, false — каркас</param>
+        /// <param name="isGrid">true - отображение сетки</param>
+        public void Render(Scene scene, double viewportWidth, double viewportHeight, bool isSolid, bool isGrid)
         {
             // Очистка кэша текстур
             if (_pendingClearTextures)
@@ -109,7 +110,7 @@ namespace RayTracer.Views
                 }
 
                 // Отрисовка сетки
-                DrawGrid();
+                if (isGrid) DrawGrid();
             }
         }
 

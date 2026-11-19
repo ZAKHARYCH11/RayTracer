@@ -1,44 +1,59 @@
-﻿using OpenTK.Graphics.OpenGL;
-using OpenTK.Mathematics;
+﻿using OpenTK.Mathematics;
 using OpenTK.Wpf;
-using RayTracer.Controllers;
 using RayTracer.Models;
 using System;
-using System.Collections.Generic;
+using System.Globalization;
 using System.Windows;
-using System.Windows.Input;
 using KeyEventArgs = System.Windows.Input.KeyEventArgs;
 using Point = System.Windows.Point;
 
-
 namespace RayTracer.Views
 {
+    /// <summary>
+    /// Основное окно приложения
+    /// </summary>
     public partial class MainWindow : Window
     {
-        private MainController _controller;
+        private Scene? _scene;
+        private readonly OpenGLRenderer _renderer = new OpenGLRenderer();
+        private readonly InspectorView _inspector;
 
         private bool _isCommittingRename = false;
+        private bool _isUpdatingTraceDepth = false;
+        private bool _isOpenGlPaused = false;
 
         private bool _isRmbDown = false;
         private bool _keyW, _keyA, _keyS, _keyD, _keyShift;
         private Point _lastMousePos;
 
-        private bool _isOpenGlPaused = false;
+        public event Action? AddSphereRequested;
+        public event Action? AddCubeRequested;
+        public event Action? AddCylinderRequested;
+        public event Action? AddGlobalLightRequested;
+        public event Action? AddSpotLightRequested;
+        public event Action? AddPointLightRequested;
 
-        private readonly OpenGLRenderer _renderer = new OpenGLRenderer();
+        public event Action<object?>? CloneRequested;
+        public event Action<object?>? DeleteRequested;
+        public event Func<object?, string, bool>? RenameRequested;
 
-        /// <summary>
-        /// Основной контроллер
-        /// </summary>
-        public MainController Controller
-        {
-            get { return _controller; }
-            private set { _controller = value; }
-        }
+        public event Action<object?, ObjectPropertiesData>? PropertiesChanged;
+        public event Action<object?, Vector3>? ColorChanged;
+
+        public event Action<int>? RenderRequested;
+        public event Action<float, float>? CameraRotateRequested;
+        public event Action<int, int, bool, float>? CameraMoveRequested;
+
+        public event Action? OpenSceneRequested;
+        public event Action? SaveSceneRequested;
+        public event Action? SaveSceneAsRequested;
+        public event Func<bool>? ClosingRequested;
 
         public MainWindow()
         {
             InitializeComponent();
+
+            _inspector = new InspectorView(this);
 
             var settings = new GLWpfControlSettings
             {
@@ -48,21 +63,201 @@ namespace RayTracer.Views
             };
             OpenGlControl.Start(settings);
 
-            _controller = new MainController(this);
+            BtnRender.Click += (s, e) => RenderRequested?.Invoke(GetTraceDepth());
         }
 
         /// <summary>
-        /// Отрисовка с помощью OpenGL
+        /// Устанавливает ссылку на модель сцены
         /// </summary>
-        /// <param name="delta">Пройденное время между кадрами</param>
+        public void SetScene(Scene scene)
+        {
+            _scene = scene;
+            _renderer.ClearTextureCache();
+            RefreshHierarchy();
+            SceneObjectsList.SelectedItem = null;
+            _inspector.DisplayObject(null);
+        }
+
+        /// <summary>
+        /// Обновляет список объектов сцены в левой панели
+        /// </summary>
+        public void RefreshHierarchy(object? itemToSelect = null)
+        {
+            if (_scene == null) return;
+
+            SceneObjectsList.Items.Clear();
+            SceneObjectsList.Items.Add(_scene.MainCamera);
+
+            foreach (var light in _scene.Lights)
+                SceneObjectsList.Items.Add(light);
+
+            foreach (var obj in _scene.Objects)
+                SceneObjectsList.Items.Add(obj);
+
+            if (itemToSelect != null)
+                SceneObjectsList.SelectedItem = itemToSelect;
+        }
+
+        /// <summary>
+        /// Принудительно обновляет отображение имён в списке
+        /// </summary>
+        public void RefreshHierarchyNames()
+        {
+            System.Windows.Application.Current.Dispatcher.InvokeAsync(() =>
+            {
+                SceneObjectsList.Items.Refresh();
+            });
+        }
+
+        /// <summary>
+        /// Обновляет свойсва камеры в интерфейсе
+        /// </summary>
+        public void RefreshCameraInspector()
+        {
+            if (_scene != null && SceneObjectsList.SelectedItem == _scene.MainCamera)
+            {
+                _inspector.RefreshCameraFields(_scene.MainCamera);
+            }
+        }
+
+        /// <summary>
+        /// Установка заголовка окна
+        /// </summary>
+        /// <param name="title">Заголовок</param>
+        public void SetWindowTitle(string title) => Title = title;
+        /// <summary>
+        /// Утановка статуса
+        /// </summary>
+        /// <param name="text">Статус</param>
+        public void SetStatusText(string text) => StatusText.Text = text;
+        /// <summary>
+        /// Установка веремени рендера
+        /// </summary>
+        /// <param name="text">Текст времени рендера</param>
+        public void SetRenderTimeText(string text) => RenderTimeText.Text = text;
+
+        /// <summary>
+        /// Установка статуса рендера
+        /// </summary>
+        /// <param name="isRendering">Статус рендера</param>
+        public void SetRenderState(bool isRendering)
+        {
+            BtnRender.IsEnabled = !isRendering;
+            if (!isRendering)
+            {
+                _renderer.ClearTextureCache();
+                RadioSolid.IsChecked = true;
+                _inspector.ShowLightmapPreview(SceneObjectsList.SelectedItem);
+            }
+        }
+
+        /// <summary>
+        /// Отображение ошибоки
+        /// </summary>
+        /// <param name="message">Сообщение</param>
+        /// <param name="title">Заголовок</param>
+        public void ShowError(string message, string title = "Ошибка")
+        {
+            System.Windows.MessageBox.Show(message, title, MessageBoxButton.OK, MessageBoxImage.Error);
+        }
+
+        /// <summary>
+        /// Подтверждение действия
+        /// </summary>
+        /// <param name="message">Сообщение</param>
+        /// <param name="title">Заголовок</param>
+        /// <returns></returns>
+        public bool ConfirmAction(string message, string title)
+        {
+            return System.Windows.MessageBox.Show(message, title, MessageBoxButton.YesNo, MessageBoxImage.Question) == MessageBoxResult.Yes;
+        }
+
+        /// <summary>
+        /// Предложение сохранения перед действием
+        /// </summary>
+        /// <param name="message">Сообщение</param>
+        /// <param name="title">Заголовок</param>
+        /// <returns>true - сохранить, false - не сохранять, null - отмена</returns>
+        public bool? AskSaveBeforeAction(string message, string title)
+        {
+            var result = System.Windows.MessageBox.Show(message, title, MessageBoxButton.YesNoCancel, MessageBoxImage.Warning);
+            if (result == MessageBoxResult.Yes) return true;
+            if (result == MessageBoxResult.No) return false;
+            return null;
+        }
+
+        /// <summary>
+        /// Отображение диалогового окна выбора файла
+        /// </summary>
+        /// <returns>Путь к файлу, null если открыть не удалось</returns>
+        public string? ShowOpenFileDialog()
+        {
+            var dialog = new Microsoft.Win32.OpenFileDialog
+            {
+                Title = "Открыть сцену",
+                Filter = "RayTracer Scene (*.json)|*.json"
+            };
+
+            SetOpenGLPaused(true);
+            try
+            {
+                return dialog.ShowDialog(this) == true ? dialog.FileName : null;
+            }
+            finally
+            {
+                SetOpenGLPaused(false);
+            }
+        }
+
+        /// <summary>
+        /// Отображение диалогового окна сохранения файла
+        /// </summary>
+        /// <param name="defaultFileName">Имя файла по умолчанию</param>
+        /// <returns>Путь к файлу, null если не удалось сохранить</returns>
+        public string? ShowSaveFileDialog(string defaultFileName)
+        {
+            var dialog = new Microsoft.Win32.SaveFileDialog
+            {
+                Title = "Сохранить сцену",
+                Filter = "RayTracer Scene (*.json)|*.json",
+                DefaultExt = ".json",
+                FileName = defaultFileName
+            };
+
+            SetOpenGLPaused(true);
+            try
+            {
+                return dialog.ShowDialog(this) == true ? dialog.FileName : null;
+            }
+            finally
+            {
+                SetOpenGLPaused(false);
+            }
+        }
+
+        /// <summary>
+        /// Установка паузы для рендера OpenGL
+        /// </summary>
+        /// <param name="paused">true - если пауза</param>
+        private void SetOpenGLPaused(bool paused)
+        {
+            _isOpenGlPaused = paused;
+            OpenGlControl.RenderContinuously = !paused;
+        }
+
+        /// <summary>
+        /// Рендер OpenGL
+        /// </summary>
+        /// <param name="delta">Прошедший промежуток времени</param>
         private void OpenGlControl_Render(TimeSpan delta)
         {
-            if (_isOpenGlPaused || Controller == null || Controller.Scene == null) return;
+            if (_isOpenGlPaused || _scene == null) return;
 
             bool isSolid = RadioSolid.IsChecked == true;
-            _renderer.Render(Controller.Scene, OpenGlControl.ActualWidth, OpenGlControl.ActualHeight, isSolid);
+            bool isGrid = CheckGrid.IsChecked == true;
+            _renderer.Render(_scene, OpenGlControl.ActualWidth, OpenGlControl.ActualHeight, isSolid, isGrid);
 
-            // Движение камеры
+            // Упарвление камерой
             if (_isRmbDown)
             {
                 int dx = 0;
@@ -71,304 +266,62 @@ namespace RayTracer.Views
                 if (_keyS) dx -= 1;
                 if (_keyD) dy += 1;
                 if (_keyA) dy -= 1;
-                Controller.MoveCamera(dx, dy, _keyShift, (float)delta.TotalSeconds);
+
+                if (dx != 0 || dy != 0)
+                    CameraMoveRequested?.Invoke(dx, dy, _keyShift, (float)delta.TotalSeconds);
             }
         }
 
-        /// <summary>
-        /// Установка паузы на рендер OpenGL
-        /// </summary>
-        public void SetOpenGLPaused(bool paused)
-        {
-            _isOpenGlPaused = paused;
-            OpenGlControl.RenderContinuously = !paused;
-        }
+        private int GetTraceDepth() => (int)SliderTraceDepth.Value;
 
-        /// <summary>
-        /// Помечает кэш видеокарты на безопасную очистку в следующем кадре рендера
-        /// </summary>
-        public void ClearTextureCache()
-        {
-            _renderer.ClearTextureCache();
-        }
+        private void BtnAddObject_Click(object sender, RoutedEventArgs e) => BtnAddObject.ContextMenu.IsOpen = true;
 
-        /// <summary>
-        /// Нажатие кнопки добавления объекта
-        /// </summary>
-        private void BtnAddObject_Click(object sender, RoutedEventArgs e)
-        {
-            BtnAddObject.ContextMenu.IsOpen = true;
-        }
+        private void MenuAddSphere_Click(object sender, RoutedEventArgs e) => AddSphereRequested?.Invoke();
+        private void MenuAddCube_Click(object sender, RoutedEventArgs e) => AddCubeRequested?.Invoke();
+        private void MenuAddCylinder_Click(object sender, RoutedEventArgs e) => AddCylinderRequested?.Invoke();
+        private void MenuAddGlobalLight_Click(object sender, RoutedEventArgs e) => AddGlobalLightRequested?.Invoke();
+        private void MenuAddSpotLight_Click(object sender, RoutedEventArgs e) => AddSpotLightRequested?.Invoke();
+        private void MenuAddPointLight_Click(object sender, RoutedEventArgs e) => AddPointLightRequested?.Invoke();
 
-        /// <summary>
-        /// Нажатие кнопки добавления сферы
-        /// </summary>
-        private void MenuAddSphere_Click(object sender, RoutedEventArgs e) => Controller?.AddSphere();
-        /// <summary>
-        /// Нажатие кнопки добавления куба
-        /// </summary>
-        private void MenuAddCube_Click(object sender, RoutedEventArgs e) => Controller?.AddCube();
-        /// <summary>
-        /// Нажатие кнопки добавления цилиндра
-        /// </summary>
-        private void MenuAddCylinder_Click(object sender, RoutedEventArgs e) => Controller?.AddCylinder();
-        /// <summary>
-        /// Нажатие кнопки добавления глобального света
-        /// </summary>
-        private void MenuAddGlobalLight_Click(object sender, RoutedEventArgs e) => Controller?.AddGlobalLight();
-        /// <summary>
-        /// Нажатие кнопки добавления направленного света
-        /// </summary>
-        private void MenuAddSpotLight_Click(object sender, RoutedEventArgs e) => Controller?.AddSpotLight();
-        /// <summary>
-        /// Нажатие кнопки добавления точечного света
-        /// </summary>
-        private void MenuAddPointLight_Click(object sender, RoutedEventArgs e) => Controller?.AddPointLight();
-        /// <summary>
-        /// Нажатие кнопки клонирования объекта
-        /// </summary>
-        private void MenuClone_Click(object sender, RoutedEventArgs e) => Controller?.CloneSelected();
-        /// <summary>
-        /// Нажатие кнопки удаления объекта
-        /// </summary>
-        private void MenuDelete_Click(object sender, RoutedEventArgs e) => Controller?.DeleteSelected();
-        /// <summary>
-        /// Нажатие кнопки открытия сцены
-        /// </summary>
-        private void MenuOpenScene_Click(object sender, RoutedEventArgs e) => Controller?.LoadScene();
-        /// <summary>
-        /// Нажатие кнопки сохранения сцены
-        /// </summary>
-        private void MenuSaveScene_Click(object sender, RoutedEventArgs e) => Controller?.SaveScene();
-        /// <summary>
-        /// Нажатие кнопки сохранить как
-        /// </summary>
-        private void MenuSaveAsScene_Click(object sender, RoutedEventArgs e) => Controller?.SaveSceneAs();
-        /// <summary>
-        /// Нажатие кнопки выхода
-        /// </summary>
+        private void MenuClone_Click(object sender, RoutedEventArgs e) => CloneRequested?.Invoke(SceneObjectsList.SelectedItem);
+        private void MenuDelete_Click(object sender, RoutedEventArgs e) => DeleteRequested?.Invoke(SceneObjectsList.SelectedItem);
+
+        private void MenuOpenScene_Click(object sender, RoutedEventArgs e) => OpenSceneRequested?.Invoke();
+        private void MenuSaveScene_Click(object sender, RoutedEventArgs e) => SaveSceneRequested?.Invoke();
+        private void MenuSaveAsScene_Click(object sender, RoutedEventArgs e) => SaveSceneAsRequested?.Invoke();
         private void MenuExit_Click(object sender, RoutedEventArgs e) => Close();
 
-        /// <summary>
-        /// Закрытие приложения
-        /// </summary>
         private void Window_Closing(object sender, System.ComponentModel.CancelEventArgs e)
         {
-            if (Controller != null && !Controller.ConfirmUnsavedChanges())
+            if (ClosingRequested != null && !ClosingRequested.Invoke())
             {
                 e.Cancel = true;
             }
         }
 
         /// <summary>
-        /// Нажатие ПКМ по элементу списка объектов
+        /// Обработка клика ПКМ по списку объектов
         /// </summary>
         private void SceneObjectsList_PreviewMouseRightButtonDown(object sender, System.Windows.Input.MouseButtonEventArgs e)
         {
-            DependencyObject originalSource = (DependencyObject)e.OriginalSource;
-
+            DependencyObject? originalSource = e.OriginalSource as DependencyObject;
             while (originalSource != null && !(originalSource is System.Windows.Controls.ListBoxItem))
             {
-                originalSource = System.Windows.Media.VisualTreeHelper.GetParent(originalSource);
+                originalSource = (originalSource is System.Windows.Media.Visual || originalSource is System.Windows.Media.Media3D.Visual3D)
+                    ? System.Windows.Media.VisualTreeHelper.GetParent(originalSource)
+                    : LogicalTreeHelper.GetParent(originalSource);
             }
 
             if (originalSource is System.Windows.Controls.ListBoxItem item)
-            {
                 item.IsSelected = true;
-            }
         }
 
         /// <summary>
-        /// Выбор объекта в списке
-        /// </summary>
-        private void SceneObjectsList_SelectionChanged(object sender, System.Windows.Controls.SelectionChangedEventArgs e)
-        {
-            if (Controller != null)
-            {
-                Controller.OnObjectSelected(SceneObjectsList.SelectedItem);
-            }
-        }
-
-        /// <summary>
-        /// Изменение свойств объекта
-        /// </summary>
-        private void Properties_Changed(object sender, RoutedEventArgs e)
-        {
-            if (Controller != null)
-            {
-                Controller.OnPropertiesChanged();
-            }
-        }
-
-        /// <summary>
-        /// Изменение значения слайдера глубины трассировки
-        /// </summary>
-        private void SliderTraceDepth_Changed(object sender, RoutedEventArgs e)
-        {
-            if(Controller != null)
-            {
-                Controller.OnSliderTraceDepthChanged();
-            }
-        }
-
-        /// <summary>
-        /// Изменение значения глубины трассировки
-        /// </summary>
-        private void TraceDepth_Changed(object sender, RoutedEventArgs e)
-        {
-            if (Controller != null)
-            {
-                Controller.OnTraceDepthChanged();
-            }
-        }
-
-        /// <summary>
-        /// Нажатие кнопки выбора цвета
-        /// </summary>
-        private void BtnSelectColor_Click(object sender, RoutedEventArgs e)
-        {
-            if (Controller != null)
-            {
-                Controller.SelectColor();
-            }
-        }
-
-        /// <summary>
-        /// Поиск дочернего элемента
-        /// </summary>
-        private T FindVisualChild<T>(DependencyObject parent, string name) where T : FrameworkElement
-        {
-            for (int i = 0; i < System.Windows.Media.VisualTreeHelper.GetChildrenCount(parent); i++)
-            {
-                var child = System.Windows.Media.VisualTreeHelper.GetChild(parent, i);
-                if (child is T element && element.Name == name) return element;
-                var result = FindVisualChild<T>(child, name);
-                if (result != null) return result;
-            }
-            return null;
-        }
-
-        /// <summary>
-        /// Нажатие кнопки переименования объекта
-        /// </summary>
-        private void MenuRename_Click(object sender, RoutedEventArgs e)
-        {
-            if (sender is System.Windows.Controls.MenuItem menuItem && menuItem.DataContext is object obj)
-            {
-                if (obj is Camera) return;
-
-                var listBoxItem = (System.Windows.Controls.ListBoxItem)SceneObjectsList.ItemContainerGenerator.ContainerFromItem(obj);
-                if (listBoxItem != null)
-                {
-                    var nameText = FindVisualChild<System.Windows.Controls.TextBlock>(listBoxItem, "NameText");
-                    var nameInput = FindVisualChild<System.Windows.Controls.TextBox>(listBoxItem, "NameInput");
-
-                    if (nameText != null && nameInput != null)
-                    {
-                        nameText.Visibility = Visibility.Collapsed;
-                        nameInput.Visibility = Visibility.Visible;
-
-                        nameInput.Text = obj.ToString();
-                        nameInput.Focus();
-                        nameInput.SelectAll();
-                    }
-                }
-            }
-        }
-
-        /// <summary>
-        /// Завершение переименования объекта
-        /// </summary>
-        private void NameInput_KeyDown(object sender, System.Windows.Input.KeyEventArgs e)
-        {
-            if (e.Key == System.Windows.Input.Key.Enter)
-                CommitRename(sender as System.Windows.Controls.TextBox);
-            else if (e.Key == System.Windows.Input.Key.Escape)
-                CancelRename(sender as System.Windows.Controls.TextBox);
-        }
-
-        /// <summary>
-        /// Потеря фокуса поля ввода имени
-        /// </summary>
-        private void NameInput_LostFocus(object sender, RoutedEventArgs e)
-        {
-            CommitRename(sender as System.Windows.Controls.TextBox);
-        }
-
-        /// <summary>
-        /// Сохранение нового имени
-        /// </summary>
-        private void CommitRename(System.Windows.Controls.TextBox textBox)
-        {
-            if (_isCommittingRename || textBox == null || textBox.Visibility != Visibility.Visible) return;
-
-            _isCommittingRename = true;
-
-            var obj = textBox.DataContext;
-            string newName = textBox.Text.Trim();
-            if (string.IsNullOrWhiteSpace(newName))
-            {
-                CancelRename(textBox);
-                return;
-            }
-
-            CancelRename(textBox);
-
-            if (Controller != null)
-            {
-                bool success = Controller.TryRenameObject(obj, newName);
-                if (!success)
-                {
-                    textBox.Text = obj.ToString();
-                    System.Windows.MessageBox.Show($"Имя '{newName}' уже используется. Пожалуйста, выберите другое.",
-                                "Ошибка переименования", MessageBoxButton.OK, MessageBoxImage.Warning);
-                }
-            }
-
-            _isCommittingRename = false;
-        }
-        
-        /// <summary>
-        /// Отмена переименования объекта
-        /// </summary>
-        private void CancelRename(System.Windows.Controls.TextBox textBox)
-        {
-            if (textBox == null) return;
-            var grid = System.Windows.Media.VisualTreeHelper.GetParent(textBox) as System.Windows.Controls.Grid;
-            if (grid != null)
-            {
-                var nameText = FindVisualChild<System.Windows.Controls.TextBlock>(grid, "NameText");
-                if (nameText != null) nameText.Visibility = Visibility.Visible;
-                textBox.Visibility = Visibility.Collapsed;
-            }
-        }
-
-        /// <summary>
-        /// Сброс фокуса элемента
-        /// </summary>
-        private void ClearFocus_MouseDown(object sender, System.Windows.Input.MouseButtonEventArgs e)
-        {
-            if (sender is FrameworkElement element)
-            {
-                element.Focus();
-            }
-        }
-
-        /// <summary>
-        /// Снятие выделения при клике ЛКМ по пустому фону левой панели или по 3D-окну
-        /// </summary>
-        private void Deselect_MouseLeftButtonDown(object sender, System.Windows.Input.MouseButtonEventArgs e)
-        {
-            SceneObjectsList.SelectedItem = null;
-        }
-
-        /// <summary>
-        /// Снятие выделения при клике ЛКМ по пустой области внутри самого списка объектов
+        /// Обработка клика ЛКМ по списку объектов
         /// </summary>
         private void SceneObjectsList_PreviewMouseLeftButtonDown(object sender, System.Windows.Input.MouseButtonEventArgs e)
         {
             DependencyObject? current = e.OriginalSource as DependencyObject;
-
             while (current != null && current != SceneObjectsList)
             {
                 if (current is System.Windows.Controls.ListBoxItem ||
@@ -387,26 +340,216 @@ namespace RayTracer.Views
         }
 
         /// <summary>
-        /// Нажатие по изображения световой карты
+        /// Выбор объекта
+        /// </summary>
+        private void SceneObjectsList_SelectionChanged(object sender, System.Windows.Controls.SelectionChangedEventArgs e)
+        {
+            _inspector.DisplayObject(SceneObjectsList.SelectedItem);
+        }
+
+        /// <summary>
+        /// Обработка изменения свойств объекта
+        /// </summary>
+        private void Properties_Changed(object sender, RoutedEventArgs e)
+        {
+            if (_inspector == null || _inspector.IsUpdatingUI) return;
+            var selected = SceneObjectsList.SelectedItem;
+            if (selected == null) return;
+
+            var values = _inspector.ReadValues(sender);
+            PropertiesChanged?.Invoke(selected, values);
+        }
+
+        /// <summary>
+        /// Обработка изменения слайдера глубины трассировки
+        /// </summary>
+        private void SliderTraceDepth_Changed(object sender, RoutedEventArgs e)
+        {
+            if (_isUpdatingTraceDepth || TraceDepth == null) return;
+            _isUpdatingTraceDepth = true;
+            TraceDepth.Text = ((int)SliderTraceDepth.Value).ToString();
+            _isUpdatingTraceDepth = false;
+        }
+
+        /// <summary>
+        /// Обработка изменения глубины трассировки через текстовое поле
+        /// </summary>
+        private void TraceDepth_Changed(object sender, RoutedEventArgs e)
+        {
+            if (_isUpdatingTraceDepth || SliderTraceDepth == null) return;
+            _isUpdatingTraceDepth = true;
+            int.TryParse(TraceDepth.Text, NumberStyles.Any, CultureInfo.InvariantCulture, out int depth);
+            int clamped = Math.Clamp(depth, 1, 10);
+            SliderTraceDepth.Value = clamped;
+            if (depth < 1 || depth > 10)
+                TraceDepth.Text = clamped.ToString();
+            _isUpdatingTraceDepth = false;
+        }
+
+        /// <summary>
+        /// Обработка нажатия на кнопку выбора цвета
+        /// </summary>
+        private void BtnSelectColor_Click(object sender, RoutedEventArgs e)
+        {
+            var selectedItem = SceneObjectsList.SelectedItem;
+            Vector3 currColor;
+
+            if (selectedItem is SceneObject obj) currColor = obj.Material.Color;
+            else if (selectedItem is Light light) currColor = light.Color;
+            else return;
+
+            var dialog = new System.Windows.Forms.ColorDialog
+            {
+                Color = System.Drawing.Color.FromArgb(
+                    255,
+                    (int)(currColor.X * 255),
+                    (int)(currColor.Y * 255),
+                    (int)(currColor.Z * 255))
+            };
+
+            if (dialog.ShowDialog() == System.Windows.Forms.DialogResult.OK)
+            {
+                Vector3 newColor = new Vector3(dialog.Color.R / 255f, dialog.Color.G / 255f, dialog.Color.B / 255f);
+                _inspector.UpdateColorButton(newColor);
+                ColorChanged?.Invoke(selectedItem, newColor);
+            }
+        }
+
+        /// <summary>
+        /// Определение дочернего элемента в интерфейсе
+        /// </summary>
+        /// <returns>Найденный дочерний элемент, null если не найден</returns>
+        private T? FindVisualChild<T>(DependencyObject parent, string name) where T : FrameworkElement
+        {
+            for (int i = 0; i < System.Windows.Media.VisualTreeHelper.GetChildrenCount(parent); i++)
+            {
+                var child = System.Windows.Media.VisualTreeHelper.GetChild(parent, i);
+                if (child is T element && element.Name == name) return element;
+                var result = FindVisualChild<T>(child, name);
+                if (result != null) return result;
+            }
+            return null;
+        }
+
+        /// <summary>
+        /// бработка переименования объекта
+        /// </summary>
+        private void MenuRename_Click(object sender, RoutedEventArgs e)
+        {
+            if (sender is System.Windows.Controls.MenuItem menuItem && menuItem.DataContext is object obj)
+            {
+                if (obj is Camera) return;
+
+                var listBoxItem = (System.Windows.Controls.ListBoxItem)SceneObjectsList.ItemContainerGenerator.ContainerFromItem(obj);
+                if (listBoxItem != null)
+                {
+                    var nameText = FindVisualChild<System.Windows.Controls.TextBlock>(listBoxItem, "NameText");
+                    var nameInput = FindVisualChild<System.Windows.Controls.TextBox>(listBoxItem, "NameInput");
+
+                    if (nameText != null && nameInput != null)
+                    {
+                        nameText.Visibility = Visibility.Collapsed;
+                        nameInput.Visibility = Visibility.Visible;
+                        nameInput.Text = obj.ToString();
+                        nameInput.Focus();
+                        nameInput.SelectAll();
+                    }
+                }
+            }
+        }
+
+        /// <summary>
+        /// Обработка переименования
+        /// </summary>
+        private void NameInput_KeyDown(object sender, KeyEventArgs e)
+        {
+            if (e.Key == System.Windows.Input.Key.Enter)
+                CommitRename(sender as System.Windows.Controls.TextBox);
+            else if (e.Key == System.Windows.Input.Key.Escape)
+                CancelRename(sender as System.Windows.Controls.TextBox);
+        }
+
+        /// <summary>
+        /// Обработка переименования при потере фокуса
+        /// </summary>
+        private void NameInput_LostFocus(object sender, RoutedEventArgs e) => CommitRename(sender as System.Windows.Controls.TextBox);
+
+        /// <summary>
+        /// Сохранение нового имени объекта
+        /// </summary>
+        private void CommitRename(System.Windows.Controls.TextBox? textBox)
+        {
+            if (_isCommittingRename || textBox == null || textBox.Visibility != Visibility.Visible) return;
+
+            _isCommittingRename = true;
+            var obj = textBox.DataContext;
+            string newName = textBox.Text.Trim();
+
+            CancelRename(textBox);
+
+            if (!string.IsNullOrWhiteSpace(newName) && RenameRequested != null)
+            {
+                bool success = RenameRequested.Invoke(obj, newName);
+                if (!success)
+                {
+                    textBox.Text = obj?.ToString() ?? string.Empty;
+                    System.Windows.MessageBox.Show($"Имя '{newName}' уже используется. Пожалуйста, выберите другое.",
+                                "Ошибка переименования", MessageBoxButton.OK, MessageBoxImage.Warning);
+                }
+            }
+
+            _isCommittingRename = false;
+        }
+
+        /// <summary>
+        /// Отмена переименования
+        /// </summary>
+        /// <param name="textBox"></param>
+        private void CancelRename(System.Windows.Controls.TextBox? textBox)
+        {
+            if (textBox == null) return;
+            var grid = System.Windows.Media.VisualTreeHelper.GetParent(textBox) as System.Windows.Controls.Grid;
+            if (grid != null)
+            {
+                var nameText = FindVisualChild<System.Windows.Controls.TextBlock>(grid, "NameText");
+                if (nameText != null) nameText.Visibility = Visibility.Visible;
+                textBox.Visibility = Visibility.Collapsed;
+            }
+        }
+
+        /// <summary>
+        /// Сброс фокуса
+        /// </summary>
+        private void ClearFocus_MouseDown(object sender, System.Windows.Input.MouseButtonEventArgs e)
+        {
+            if (sender is FrameworkElement element) element.Focus();
+        }
+
+        /// <summary>
+        /// Сброс выбора объекта
+        /// </summary>
+        private void Deselect_MouseLeftButtonDown(object sender, System.Windows.Input.MouseButtonEventArgs e)
+        {
+            SceneObjectsList.SelectedItem = null;
+        }
+
+        /// <summary>
+        /// Обработка нажатия по области предпросмотра световой карты
         /// </summary>
         private void LightmapPreviewImage_MouseLeftButtonDown(object sender, System.Windows.Input.MouseButtonEventArgs e)
         {
             if (LightmapPreviewImage.Source == null) return;
 
             e.Handled = true;
-
-            LightmapWindow viewer = new LightmapWindow(LightmapPreviewImage.Source);
-
-            viewer.Owner = this;
-
+            var viewer = new LightmapWindow(LightmapPreviewImage.Source) { Owner = this };
             viewer.Show();
             viewer.Activate();
         }
 
         /// <summary>
-        /// Обработка нажатия кнопок
+        /// Обработка нажатий клавиш клавиатуры
         /// </summary>
-        private void Window_PreviewKeyDown(object sender, System.Windows.Input.KeyEventArgs e)
+        private void Window_PreviewKeyDown(object sender, KeyEventArgs e)
         {
             var key = (e.Key == System.Windows.Input.Key.ImeProcessed) ? e.ImeProcessedKey : e.Key;
 
@@ -425,71 +568,69 @@ namespace RayTracer.Views
                     // Сохранить как
                     if (isShift && key == System.Windows.Input.Key.S)
                     {
-                        Controller?.SaveSceneAs();
+                        SaveSceneAsRequested?.Invoke();
                         e.Handled = true;
                     }
                     // Сохранить
                     else if (!isShift && key == System.Windows.Input.Key.S)
                     {
-                        Controller?.SaveScene();
+                        SaveSceneRequested?.Invoke();
                         e.Handled = true;
                     }
                     // Открыть
                     else if (!isShift && key == System.Windows.Input.Key.O)
                     {
-                        Controller?.LoadScene();
+                        OpenSceneRequested?.Invoke();
                         e.Handled = true;
                     }
-                    // Клонировать объект
+                    // Клонировать
                     else if (!isShift && !isRenaming && key == System.Windows.Input.Key.D)
                     {
-                        Controller?.CloneSelected();
+                        CloneRequested?.Invoke(SceneObjectsList.SelectedItem);
                         e.Handled = true;
                     }
                 }
                 return;
             }
-
-            // Удаление
+            // Удалить
             if (!e.IsRepeat && !isTypingInTextBox && key == System.Windows.Input.Key.Delete)
             {
-                Controller?.DeleteSelected();
+                DeleteRequested?.Invoke(SceneObjectsList.SelectedItem);
                 e.Handled = true;
                 return;
             }
-
             // Запуск рендера
             if (!e.IsRepeat && !isRenaming && key == System.Windows.Input.Key.F5)
             {
-                Controller?.StartRender();
+                RenderRequested?.Invoke(GetTraceDepth());
                 e.Handled = true;
                 return;
             }
-
+            // Перемещение
             if (!isTypingInTextBox || _isRmbDown)
             {
                 if (key == System.Windows.Input.Key.W) _keyW = true;
                 if (key == System.Windows.Input.Key.A) _keyA = true;
                 if (key == System.Windows.Input.Key.S) _keyS = true;
                 if (key == System.Windows.Input.Key.D) _keyD = true;
-                if (key == System.Windows.Input.Key.LeftShift) _keyShift = true;
+                if (key == System.Windows.Input.Key.LeftShift || key == System.Windows.Input.Key.RightShift) _keyShift = true;
             }
         }
 
         /// <summary>
-        /// Обработка отжатия кнопок
+        /// Обработка отпускания клавиш клавиатуры
         /// </summary>
-        private void Window_KeyUp(object sender, System.Windows.Input.KeyEventArgs e)
+        private void Window_KeyUp(object sender, KeyEventArgs e)
         {
             if (e.Key == System.Windows.Input.Key.W) _keyW = false;
             if (e.Key == System.Windows.Input.Key.A) _keyA = false;
             if (e.Key == System.Windows.Input.Key.S) _keyS = false;
             if (e.Key == System.Windows.Input.Key.D) _keyD = false;
-            if (e.Key == System.Windows.Input.Key.LeftShift) _keyShift = false;
+            if (e.Key == System.Windows.Input.Key.LeftShift || e.Key == System.Windows.Input.Key.RightShift) _keyShift = false;
         }
 
         /// <summary>
-        /// Обработка нажатия ПКМ
+        /// Обработка нажатия ПКМ по области OpenGL
         /// </summary>
         private void OpenGlControl_MouseRightButtonDown(object sender, System.Windows.Input.MouseButtonEventArgs e)
         {
@@ -499,7 +640,7 @@ namespace RayTracer.Views
         }
 
         /// <summary>
-        /// Обработка отжатия ПКМ
+        /// Обработка отпускания ПКМ по области OprnGL
         /// </summary>
         private void OpenGlControl_MouseRightButtonUp(object sender, System.Windows.Input.MouseButtonEventArgs e)
         {
@@ -508,18 +649,18 @@ namespace RayTracer.Views
         }
 
         /// <summary>
-        /// Обработка перемещения мыши
+        /// Обработка перемещения мыши по области OpenGL
         /// </summary>
         private void OpenGlControl_MouseMove(object sender, System.Windows.Input.MouseEventArgs e)
         {
-            if (_isRmbDown && Controller != null)
+            if (_isRmbDown)
             {
                 Point currentPos = e.GetPosition(null);
                 float dx = (float)(currentPos.X - _lastMousePos.X);
                 float dy = (float)(currentPos.Y - _lastMousePos.Y);
                 _lastMousePos = currentPos;
 
-                Controller.RotateCamera(dx, dy);
+                CameraRotateRequested?.Invoke(dx, dy);
             }
         }
     }

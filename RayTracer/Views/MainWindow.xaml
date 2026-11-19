@@ -221,7 +221,9 @@
                                 <RadioButton x:Name="RadioWireframe" Content="Каркас" IsChecked="True" Foreground="{StaticResource TextColor}" Margin="0,0,10,0" ToolTip="Отображение объектов линиями"/>
                                 <RadioButton x:Name="RadioSolid" Content="Световые карты" Foreground="{StaticResource TextColor}" ToolTip="Отображение объектов с наложенными световыми картами"/>
                             </StackPanel>
-                            
+
+                            <CheckBox x:Name="CheckGrid" Content="Сетка" IsChecked="True" Foreground="{StaticResource TextColor}" ToolTip="Отображение сетки на нулевом Y" Margin="0,0,0,15"/>
+
                             <TextBlock Text="Глубина трассировки"/>
                             <Grid Margin="0,5,0,15" Height="28" ToolTip="Максимальное число переотражений луча">
                                 <Grid.ColumnDefinitions>
