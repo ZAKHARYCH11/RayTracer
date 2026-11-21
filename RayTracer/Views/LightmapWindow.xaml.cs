@@ -103,5 +103,17 @@ namespace RayTracer.Views
             imgTranslate.X = Math.Clamp(imgTranslate.X, -limitX, limitX);
             imgTranslate.Y = Math.Clamp(imgTranslate.Y, -limitY, limitY);
         }
+
+        /// <summary>
+        /// Обработка нажатия клавиш клавиатуры
+        /// </summary>
+        private void Window_PreviewKeyDown(object sender, System.Windows.Input.KeyEventArgs e)
+        {
+            if (e.Key == Key.Escape)
+            {
+                Close();
+                e.Handled = true;
+            }
+        }
     }
 }

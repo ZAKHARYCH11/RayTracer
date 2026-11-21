@@ -1,0 +1,110 @@
+﻿<Window x:Class="RayTracer.Views.HelpWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        Title="Справка"
+        Height="560" Width="620"
+        MinHeight="450" MinWidth="500"
+        Background="{StaticResource WindowBg}"
+        WindowStartupLocation="CenterOwner"
+        PreviewKeyDown="Window_PreviewKeyDown">
+
+    <Grid Margin="15">
+        <Grid.RowDefinitions>
+            <RowDefinition Height="*"/>
+            <RowDefinition Height="Auto"/>
+        </Grid.RowDefinitions>
+
+        <ScrollViewer Grid.Row="0" VerticalScrollBarVisibility="Auto" Padding="0,0,10,0">
+            <StackPanel>
+                <TextBlock Text="Трассировщик лучей для расчёта световых карт"
+                           FontSize="18" FontWeight="Bold" Margin="0,0,0,10"/>
+
+                <TextBlock TextWrapping="Wrap" LineHeight="20" Margin="0,0,0,15" Foreground="{StaticResource TextColor}"
+                           Text="Приложение предназначено для моделирования простых 3D-сцен, расчёта освещения методом обратной трассировки лучей на CPU и генерации текстур световых карт (lightmaps) с учётом теней, затухания света и зеркальных отражений. Предпросмотр сцены выполняется в реальном времени с помощью OpenGL."/>
+
+                <TextBlock Text="Основные возможности и порядок работы"
+                           FontSize="14" FontWeight="Bold" Margin="0,5,0,8" Foreground="#4FC1FF"/>
+
+                <Border Background="#2D2D30" BorderBrush="{StaticResource BorderColor}" BorderThickness="1" Padding="10" Margin="0,0,0,15">
+                    <StackPanel>
+                        <TextBlock TextWrapping="Wrap" Margin="0,0,0,6"
+                                   Text="1. Добавление и управление объектами: используйте кнопку «Добавить» или правую кнопку мыши (ПКМ) в панели «Иерархия сцены» для создания сфер, кубов, цилиндров и источников света (глобального, точечного, направленного)."/>
+                        <TextBlock TextWrapping="Wrap" Margin="0,0,0,6"
+                                   Text="2. Редактирование параметров: выберите объект в списке слева, чтобы настроить его координаты, размеры, цвет, зеркальность и разрешение световой карты на вкладке «Свойства»."/>
+                        <TextBlock TextWrapping="Wrap" Margin="0,0,0,6"
+                                   Text="3. Навигация по 3D-сцене: зажмите ПКМ в области предпросмотра и вращайте мышью. Для перемещения используйте клавиши W, A, S, D. Для увеличения скорости зажмите клавишу Shift."/>
+                        <TextBlock TextWrapping="Wrap" Margin="0,0,0,6"
+                                   Text="4. Запекание световых карт: на вкладке «Рендеринг» задайте глубину трассировки (число переотражений луча) и нажмите «Запустить рендер» (или F5). После выполнения время расчёта отобразится в строке состояния."/>
+                        <TextBlock TextWrapping="Wrap"
+                                   Text="5. Просмотр и сохранение: нажмите на миниатюру карты для открытия увеличенного просмотрщика. Сцена сохраняется в формат .json вместе со всеми рассчитанными световыми картами."/>
+                    </StackPanel>
+                </Border>
+
+                <TextBlock Text="Горячие клавиши и управление"
+                           FontSize="14" FontWeight="Bold" Margin="0,5,0,8" Foreground="#4FC1FF"/>
+
+                <Border Background="{StaticResource PanelBg}" BorderBrush="{StaticResource BorderColor}" BorderThickness="1" Padding="10" Margin="0,0,0,10">
+                    <Grid>
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="175"/>
+                            <ColumnDefinition Width="*"/>
+                        </Grid.ColumnDefinitions>
+                        <Grid.RowDefinitions>
+                            <RowDefinition Height="Auto"/>
+                            <RowDefinition Height="Auto"/>
+                            <RowDefinition Height="Auto"/>
+                            <RowDefinition Height="Auto"/>
+                            <RowDefinition Height="Auto"/>
+                            <RowDefinition Height="Auto"/>
+                            <RowDefinition Height="Auto"/>
+                            <RowDefinition Height="Auto"/>
+                            <RowDefinition Height="Auto"/>
+                            <RowDefinition Height="Auto"/>
+                            <RowDefinition Height="Auto"/>
+                            <RowDefinition Height="Auto"/>
+                        </Grid.RowDefinitions>
+
+                        <TextBlock Grid.Row="0" Grid.Column="0" Text="Ctrl + O" FontWeight="Bold" Margin="0,2"/>
+                        <TextBlock Grid.Row="0" Grid.Column="1" Text="Открыть сцену из файла (.json)" Margin="0,2"/>
+
+                        <TextBlock Grid.Row="1" Grid.Column="0" Text="Ctrl + S" FontWeight="Bold" Margin="0,2"/>
+                        <TextBlock Grid.Row="1" Grid.Column="1" Text="Сохранить текущую сцену" Margin="0,2"/>
+
+                        <TextBlock Grid.Row="2" Grid.Column="0" Text="Ctrl + Shift + S" FontWeight="Bold" Margin="0,2"/>
+                        <TextBlock Grid.Row="2" Grid.Column="1" Text="Сохранить сцену как..." Margin="0,2"/>
+
+                        <TextBlock Grid.Row="3" Grid.Column="0" Text="Ctrl + D" FontWeight="Bold" Margin="0,2"/>
+                        <TextBlock Grid.Row="3" Grid.Column="1" Text="Клонировать выбранный объект или свет" Margin="0,2"/>
+
+                        <TextBlock Grid.Row="4" Grid.Column="0" Text="Delete" FontWeight="Bold" Margin="0,2"/>
+                        <TextBlock Grid.Row="4" Grid.Column="1" Text="Удалить выбранный объект (с подтверждением)" Margin="0,2"/>
+
+                        <TextBlock Grid.Row="5" Grid.Column="0" Text="F5" FontWeight="Bold" Margin="0,2"/>
+                        <TextBlock Grid.Row="5" Grid.Column="1" Text="Запустить расчёт световых карт" Margin="0,2"/>
+
+                        <TextBlock Grid.Row="6" Grid.Column="0" Text="F1" FontWeight="Bold" Margin="0,2"/>
+                        <TextBlock Grid.Row="6" Grid.Column="1" Text="Открыть окно справки" Margin="0,2"/>
+
+                        <TextBlock Grid.Row="7" Grid.Column="0" Text="Enter" FontWeight="Bold" Margin="0,2"/>
+                        <TextBlock Grid.Row="7" Grid.Column="1" Text="Подтвердить переименование / выбор" Margin="0,2"/>
+
+                        <TextBlock Grid.Row="8" Grid.Column="0" Text="Esc" FontWeight="Bold" Margin="0,2"/>
+                        <TextBlock Grid.Row="8" Grid.Column="1" Text="Возврат / отмена переименования / закрытие окон и диалогов" TextWrapping="Wrap" Margin="0,2"/>
+
+                        <TextBlock Grid.Row="9" Grid.Column="0" Text="ПКМ + WASD" FontWeight="Bold" Margin="0,2"/>
+                        <TextBlock Grid.Row="9" Grid.Column="1" Text="Вращение и перемещение камеры в 3D-предпросмотре" Margin="0,2"/>
+
+                        <TextBlock Grid.Row="10" Grid.Column="0" Text="Shift" FontWeight="Bold" Margin="0,2"/>
+                        <TextBlock Grid.Row="10" Grid.Column="1" Text="Увеличение скорости перемещения" Margin="0,2"/>
+
+                        <TextBlock Grid.Row="11" Grid.Column="0" Text="Alt + F4" FontWeight="Bold" Margin="0,2"/>
+                        <TextBlock Grid.Row="11" Grid.Column="1" Text="Выход из приложения" Margin="0,2"/>
+                    </Grid>
+                </Border>
+            </StackPanel>
+        </ScrollViewer>
+
+        <Button Grid.Row="1" Content="Закрыть" Width="120" HorizontalAlignment="Right"
+                Margin="0,12,0,0" Padding="8,5" Click="BtnClose_Click"/>
+    </Grid>
+</Window>

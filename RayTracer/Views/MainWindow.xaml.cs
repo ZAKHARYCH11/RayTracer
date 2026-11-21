@@ -17,6 +17,7 @@ namespace RayTracer.Views
         private Scene? _scene;
         private readonly OpenGLRenderer _renderer = new OpenGLRenderer();
         private readonly InspectorView _inspector;
+        private HelpWindow? _helpWindow;
 
         private bool _isCommittingRename = false;
         private bool _isUpdatingTraceDepth = false;
@@ -298,6 +299,8 @@ namespace RayTracer.Views
                 e.Cancel = true;
             }
         }
+
+        private void MenuHelp_Click(object sender, RoutedEventArgs e) => OpenHelpWindow();
 
         /// <summary>
         /// Обработка клика ПКМ по списку объектов
@@ -606,6 +609,13 @@ namespace RayTracer.Views
                 e.Handled = true;
                 return;
             }
+            // Справка
+            if (!e.IsRepeat && key == System.Windows.Input.Key.F1)
+            {
+                OpenHelpWindow();
+                e.Handled = true;
+                return;
+            }
             // Перемещение
             if (!isTypingInTextBox || _isRmbDown)
             {
@@ -662,6 +672,22 @@ namespace RayTracer.Views
 
                 CameraRotateRequested?.Invoke(dx, dy);
             }
+        }
+
+        /// <summary>
+        /// Открытие окна справки
+        /// </summary>
+        private void OpenHelpWindow()
+        {
+            if (_helpWindow != null && _helpWindow.IsVisible)
+            {
+                _helpWindow.Activate();
+                return;
+            }
+
+            _helpWindow = new HelpWindow { Owner = this };
+            _helpWindow.Closed += (s, e) => _helpWindow = null;
+            _helpWindow.Show();
         }
     }
 }

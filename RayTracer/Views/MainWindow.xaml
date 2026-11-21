@@ -11,6 +11,7 @@
         MinWidth="1000" MinHeight="600" 
         FontFamily="Segoe UI"
         Background="{StaticResource WindowBg}"
+        WindowStartupLocation="CenterScreen"
         PreviewKeyDown="Window_PreviewKeyDown"
         KeyUp="Window_KeyUp"
         Closing="Window_Closing">
@@ -23,6 +24,9 @@
                 <MenuItem Header="Сохранить сцену как..." InputGestureText="Ctrl+Shift+S" Click="MenuSaveAsScene_Click"/>
                 <Separator Background="{StaticResource SelectedBg}"/>
                 <MenuItem Header="Выход" InputGestureText="Alt+F4" Click="MenuExit_Click"/>
+            </MenuItem>
+            <MenuItem Header="Справка">
+                <MenuItem Header="Руководство и горячие клавиши" InputGestureText="F1" Click="MenuHelp_Click"/>
             </MenuItem>
         </Menu>
 

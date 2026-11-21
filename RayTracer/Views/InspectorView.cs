@@ -252,7 +252,7 @@ namespace RayTracer.Views
         }
 
         /// <summary>
-        /// Выводит световую карту выбранного объекта в область предпросмотра
+        /// Вывод световой карты выбранного объекта в область предпросмотра
         /// </summary>
         public void ShowLightmapPreview(object? selectedItem)
         {
