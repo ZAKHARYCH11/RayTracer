@@ -103,11 +103,11 @@ namespace RayTracer.Models
         {
             _name = name;
             _position = position;
-            _direction = direction;
-            _up = up;
-            _fovDegrees = fovDegrees;
-            _speed = speed;
-            _sensitivity = sensitivity;
+            _direction = direction.LengthSquared > 0 ? direction.Normalized() : new Vector3(0, 0, -1);
+            _up = up.LengthSquared > 0 ? up.Normalized() : new Vector3(0, 1, 0);
+            _fovDegrees = fovDegrees > 0 ? fovDegrees : 75f;
+            _speed = speed > 0 ? speed : 2.0f;
+            _sensitivity = sensitivity > 0 ? sensitivity : 0.005f;
         }
 
         /// <summary>
@@ -149,22 +149,22 @@ namespace RayTracer.Models
             _position += dy * _right * speed;
         }
 
+        /// <summary>
+        /// Вращение камеры
+        /// </summary>
+        /// <param name="dx">Изменение координат мыши по X</param>
+        /// <param name="dy">Изменение координат мыши по Y</param>
         public void Rotate(float dx, float dy)
         {
-            float pitch = (float)Math.Asin(_direction.Y);
-            float yaw = (float)Math.Atan2(_direction.Z, _direction.X);
+            var (pitchDeg, yawDeg) = RotationUtils.DirectionToAngles(_direction);
 
-            yaw += dx * _sensitivity;
-            pitch -= dy * _sensitivity;
+            float sensDeg = MathHelper.RadiansToDegrees(_sensitivity);
+            yawDeg += dx * sensDeg;
+            pitchDeg -= dy * sensDeg;
 
-            float limit = MathHelper.DegreesToRadians(89.0f);
-            pitch = Math.Clamp(pitch, -limit, limit);
+            pitchDeg = Math.Clamp(pitchDeg, -89.9f, 89.9f);
 
-            _direction = new Vector3(
-                (float)(Math.Cos(pitch) * Math.Cos(yaw)),
-                (float)Math.Sin(pitch),
-                (float)(Math.Cos(pitch) * Math.Sin(yaw))
-            ).Normalized();
+            _direction = RotationUtils.AnglesToDirection(pitchDeg, yawDeg);
         }
 
         public override string ToString()

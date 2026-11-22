@@ -1,7 +1,8 @@
 ﻿<Application x:Class="RayTracer.App"
              xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
-             xmlns:local="clr-namespace:RayTracer">
+             xmlns:local="clr-namespace:RayTracer"
+             xmlns:views="clr-namespace:RayTracer.Views">
     <Application.Resources>
         <SolidColorBrush x:Key="WindowBg" Color="#252526"/>
         <SolidColorBrush x:Key="PanelBg" Color="#2D2D30"/>
@@ -105,6 +106,7 @@
                     </ControlTemplate>
                 </Setter.Value>
             </Setter>
+            <Setter Property="views:TextBoxHelper.SelectAllOnFocus" Value="True"/>
         </Style>
 
         <Style TargetType="ListBox">

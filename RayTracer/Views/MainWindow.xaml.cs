@@ -27,6 +27,8 @@ namespace RayTracer.Views
         private bool _keyW, _keyA, _keyS, _keyD, _keyShift;
         private Point _lastMousePos;
 
+        private int _traceDepthBeforeEdit = 3;
+
         public event Action? AddSphereRequested;
         public event Action? AddCubeRequested;
         public event Action? AddCylinderRequested;
@@ -55,6 +57,7 @@ namespace RayTracer.Views
             InitializeComponent();
 
             _inspector = new InspectorView(this);
+            _inspector.FieldCommitted += (item, data) => PropertiesChanged?.Invoke(item, data);
 
             var settings = new GLWpfControlSettings
             {
@@ -64,7 +67,11 @@ namespace RayTracer.Views
             };
             OpenGlControl.Start(settings);
 
-            BtnRender.Click += (s, e) => RenderRequested?.Invoke(GetTraceDepth());
+            BtnRender.Click += (s, e) =>
+            {
+                _inspector.CommitActiveField();
+                RenderRequested?.Invoke(GetTraceDepth());
+            };
         }
 
         /// <summary>
@@ -273,8 +280,6 @@ namespace RayTracer.Views
             }
         }
 
-        private int GetTraceDepth() => (int)SliderTraceDepth.Value;
-
         private void BtnAddObject_Click(object sender, RoutedEventArgs e) => BtnAddObject.ContextMenu.IsOpen = true;
 
         private void MenuAddSphere_Click(object sender, RoutedEventArgs e) => AddSphereRequested?.Invoke();
@@ -359,8 +364,10 @@ namespace RayTracer.Views
             var selected = SceneObjectsList.SelectedItem;
             if (selected == null) return;
 
-            var values = _inspector.ReadValues(sender);
-            PropertiesChanged?.Invoke(selected, values);
+            if (_inspector.TryReadLiveValues(sender, out var values))
+            {
+                PropertiesChanged?.Invoke(selected, values);
+            }
         }
 
         /// <summary>
@@ -380,13 +387,83 @@ namespace RayTracer.Views
         private void TraceDepth_Changed(object sender, RoutedEventArgs e)
         {
             if (_isUpdatingTraceDepth || SliderTraceDepth == null) return;
+
+            if (int.TryParse(TraceDepth.Text.Trim(), NumberStyles.Integer, CultureInfo.InvariantCulture, out int depth)
+                && depth >= 1 && depth <= 10)
+            {
+                _isUpdatingTraceDepth = true;
+                SliderTraceDepth.Value = depth;
+                _isUpdatingTraceDepth = false;
+            }
+        }
+
+        /// <summary>
+        /// Обработка потери фокуса полем ввода глубины трассировки
+        /// </summary>
+        private void TraceDepth_LostFocus(object sender, RoutedEventArgs e)
+        {
+            CommitTraceDepth();
+        }
+
+        /// <summary>
+        /// Обработка отпускания клавиш в поле ввода глубины трассировки
+        /// </summary>
+        private void TraceDepth_KeyDown(object sender, KeyEventArgs e)
+        {
+            if (e.Key == System.Windows.Input.Key.Enter)
+            {
+                CommitTraceDepth();
+                System.Windows.Input.Keyboard.ClearFocus();
+                e.Handled = true;
+            }
+            else if (e.Key == System.Windows.Input.Key.Escape)
+            {
+                _isUpdatingTraceDepth = true;
+                SliderTraceDepth.Value = _traceDepthBeforeEdit;
+                TraceDepth.Text = _traceDepthBeforeEdit.ToString();
+                _isUpdatingTraceDepth = false;
+                System.Windows.Input.Keyboard.ClearFocus();
+                e.Handled = true;
+            }
+        }
+
+        /// <summary>
+        /// Сохранение изменения глубины трасировки
+        /// </summary>
+        private void CommitTraceDepth()
+        {
+            if (TraceDepth == null || SliderTraceDepth == null) return;
+
             _isUpdatingTraceDepth = true;
-            int.TryParse(TraceDepth.Text, NumberStyles.Any, CultureInfo.InvariantCulture, out int depth);
-            int clamped = Math.Clamp(depth, 1, 10);
-            SliderTraceDepth.Value = clamped;
-            if (depth < 1 || depth > 10)
+            if (int.TryParse(TraceDepth.Text.Trim(), NumberStyles.Integer, CultureInfo.InvariantCulture, out int depth))
+            {
+                int clamped = Math.Clamp(depth, 1, 10);
+                SliderTraceDepth.Value = clamped;
                 TraceDepth.Text = clamped.ToString();
+            }
+            else
+            {
+                TraceDepth.Text = ((int)SliderTraceDepth.Value).ToString();
+            }
             _isUpdatingTraceDepth = false;
+        }
+
+        /// <summary>
+        /// Получение глубины трассировки
+        /// </summary>
+        /// <returns></returns>
+        private int GetTraceDepth()
+        {
+            CommitTraceDepth();
+            return (int)SliderTraceDepth.Value;
+        }
+
+        /// <summary>
+        /// Сохранение предыдущего значения поля ввода глубины трассировки
+        /// </summary>
+        private void TraceDepth_GotKeyboardFocus(object sender, System.Windows.Input.KeyboardFocusChangedEventArgs e)
+        {
+            _traceDepthBeforeEdit = (int)SliderTraceDepth.Value;
         }
 
         /// <summary>
@@ -612,6 +689,7 @@ namespace RayTracer.Views
             // Справка
             if (!e.IsRepeat && key == System.Windows.Input.Key.F1)
             {
+                _inspector.CommitActiveField();
                 OpenHelpWindow();
                 e.Handled = true;
                 return;

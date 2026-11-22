@@ -139,42 +139,60 @@
                             <TextBlock x:Name="TxtObjType" Text="Тип объекта: " Margin="0,0,0,15"/>
 
                             <StackPanel x:Name="PanelCoordinates" Visibility="Collapsed" Margin="0,0,0,15">
-                                <TextBlock Text="Координаты (X, Y, Z)"/>
-                                <UniformGrid Columns="3" Margin="0,5,0,0">
-                                    <TextBox x:Name="PosX" Text="0.0" Margin="0,0,2,0" TextChanged="Properties_Changed"/>
-                                    <TextBox x:Name="PosY" Text="0.0" Margin="2,0,2,0" TextChanged="Properties_Changed"/>
-                                    <TextBox x:Name="PosZ" Text="0.0" Margin="2,0,0,0" TextChanged="Properties_Changed"/>
-                                </UniformGrid>
+                                <TextBlock Text="Координаты"/>
+                                <Grid Margin="0,5,0,0">
+                                    <Grid.ColumnDefinitions>
+                                        <ColumnDefinition Width="Auto"/>
+                                        <ColumnDefinition Width="*"/>
+                                        <ColumnDefinition Width="Auto"/>
+                                        <ColumnDefinition Width="*"/>
+                                        <ColumnDefinition Width="Auto"/>
+                                        <ColumnDefinition Width="*"/>
+                                    </Grid.ColumnDefinitions>
+                                    <TextBlock x:Name="LblPosX" Grid.Column="0" Text="X" VerticalAlignment="Center" Margin="0,0,4,0"/>
+                                    <TextBox Grid.Column="1" x:Name="PosX" Text="0.0" Margin="0,0,6,0" TextChanged="Properties_Changed"/>
+                                    <TextBlock x:Name="LblPosY" Grid.Column="2" Text="Y" VerticalAlignment="Center" Margin="0,0,4,0"/>
+                                    <TextBox Grid.Column="3" x:Name="PosY" Text="0.0" Margin="0,0,6,0" TextChanged="Properties_Changed"/>
+                                    <TextBlock x:Name="LblPosZ" Grid.Column="4" Text="Z" VerticalAlignment="Center" Margin="0,0,4,0"/>
+                                    <TextBox Grid.Column="5" x:Name="PosZ" Text="0.0" TextChanged="Properties_Changed"/>
+                                </Grid>
                             </StackPanel>
 
                             <StackPanel x:Name="PanelDirection" Visibility="Collapsed" Margin="0,0,0,15">
-                                <TextBlock Text="Направление (X, Y, Z)"/>
-                                <UniformGrid Columns="3" Margin="0,5,0,0">
-                                    <TextBox x:Name="DirX" Text="0.0" Margin="0,0,2,0" TextChanged="Properties_Changed"/>
-                                    <TextBox x:Name="DirY" Text="-1.0" Margin="2,0,2,0" TextChanged="Properties_Changed"/>
-                                    <TextBox x:Name="DirZ" Text="0.0" Margin="2,0,0,0" TextChanged="Properties_Changed"/>
-                                </UniformGrid>
+                                <TextBlock Text="Поворот"/>
+                                <Grid Margin="0,5,0,0">
+                                    <Grid.ColumnDefinitions>
+                                        <ColumnDefinition Width="Auto"/>
+                                        <ColumnDefinition Width="*"/>
+                                        <ColumnDefinition Width="Auto"/>
+                                        <ColumnDefinition Width="*"/>
+                                    </Grid.ColumnDefinitions>
+                                    <TextBlock x:Name="LblRotX" Grid.Column="0" Text="X" VerticalAlignment="Center" Margin="0,0,4,0" ToolTip="Наклон вверх/вниз (Pitch)"/>
+                                    <TextBox Grid.Column="1" x:Name="RotX" Text="0.0" Margin="0,0,8,0" TextChanged="Properties_Changed"/>
+                                    <TextBlock x:Name="LblRotY" Grid.Column="2" Text="Y" VerticalAlignment="Center" Margin="0,0,4,0" ToolTip="Поворот влево/вправо (Yaw)"/>
+                                    <TextBox Grid.Column="3" x:Name="RotY" Text="0.0" TextChanged="Properties_Changed"/>
+                                </Grid>
                             </StackPanel>
 
                             <StackPanel x:Name="PanelSpotAngle" Visibility="Collapsed" Margin="0,0,0,15">
-                                <TextBlock Text="Угол конуса света (в градусах)"/>
+                                <TextBlock x:Name="LblSpotAngle" Text="Угол конуса света" HorizontalAlignment="Left"/>
                                 <TextBox x:Name="SpotAngle" Text="30" TextChanged="Properties_Changed"/>
                             </StackPanel>
 
                             <StackPanel x:Name="PanelSphere" Visibility="Collapsed" Margin="0,0,0,15">
-                                <TextBlock Text="Радиус сферы"/>
+                                <TextBlock x:Name="LblRadius" Text="Радиус сферы" HorizontalAlignment="Left"/>
                                 <TextBox x:Name="Radius" Text="0.5" TextChanged="Properties_Changed"/>
                             </StackPanel>
 
                             <StackPanel x:Name="PanelCube" Visibility="Collapsed" Margin="0,0,0,15">
-                                <TextBlock Text="Сторона куба"/>
+                                <TextBlock x:Name="LblSide" Text="Сторона куба" HorizontalAlignment="Left"/>
                                 <TextBox x:Name="Side" Text="1.0" TextChanged="Properties_Changed"/>
                             </StackPanel>
 
                             <StackPanel x:Name="PanelCylinder" Visibility="Collapsed" Margin="0,0,0,15">
-                                <TextBlock Text="Радиус основания"/>
+                                <TextBlock x:Name="LblCylRadius" Text="Радиус основания" HorizontalAlignment="Left"/>
                                 <TextBox x:Name="CylRadius" Text="0.5" Margin="0,0,0,5" TextChanged="Properties_Changed"/>
-                                <TextBlock Text="Высота цилиндра"/>
+                                <TextBlock x:Name="LblHeight" Text="Высота цилиндра" HorizontalAlignment="Left"/>
                                 <TextBox x:Name="Height" Text="1.0" TextChanged="Properties_Changed"/>
                             </StackPanel>
 
@@ -184,39 +202,46 @@
                             </StackPanel>
 
                             <StackPanel x:Name="PanelMaterial" Visibility="Collapsed">
-                                <TextBlock Text="Разрешение световой карты"/>
+                                <TextBlock x:Name="LblObjResolution" Text="Разрешение световой карты" HorizontalAlignment="Left"/>
                                 <TextBox x:Name="ObjResolution" Text="256" Margin="0,5,0,15" TextChanged="Properties_Changed"/>
-                                
-                                <TextBlock Text="Зеркальность"/>
+
+                                <TextBlock x:Name="LblReflectivity" Text="Зеркальность" HorizontalAlignment="Left"/>
                                 <Grid Margin="0,5,0,15">
                                     <Grid.ColumnDefinitions>
                                         <ColumnDefinition Width="*"/>
                                         <ColumnDefinition Width="40"/>
                                     </Grid.ColumnDefinitions>
-                                    <Slider x:Name="SliderReflectivity" Minimum="0" Maximum="1" Value="0.5" ValueChanged="Properties_Changed" Margin="0,0,10,0"/>
+                                    <Slider x:Name="SliderReflectivity" Minimum="0" Maximum="1" Value="0.5" ValueChanged="Properties_Changed" Margin="0,5,10,0"/>
                                     <TextBox x:Name="Reflectivity" Grid.Column="1" Text="0.5" TextChanged="Properties_Changed"/>
                                 </Grid>
                             </StackPanel>
 
                             <StackPanel x:Name="PanelLight" Visibility="Collapsed">
-                                <TextBlock Text="Интенсивность света"/>
-                                <Slider x:Name="SliderLightIntensity" Minimum="0" Maximum="5" Value="1" Margin="0,5,0,15" ValueChanged="Properties_Changed"/>
+                                <TextBlock x:Name="LblLightIntensity" Text="Интенсивность света" HorizontalAlignment="Left"/>
+                                <Grid Margin="0,5,0,15">
+                                    <Grid.ColumnDefinitions>
+                                        <ColumnDefinition Width="*"/>
+                                        <ColumnDefinition Width="40"/>
+                                    </Grid.ColumnDefinitions>
+                                    <Slider x:Name="SliderLightIntensity" Minimum="0" Maximum="5" Value="1" Margin="0,5,10,0" ValueChanged="Properties_Changed"/>
+                                    <TextBox x:Name="LightIntensity" Grid.Column="1" Text="1.0" TextChanged="Properties_Changed"/>
+                                </Grid>
                             </StackPanel>
 
                             <StackPanel x:Name="PanelLightRange" Visibility="Collapsed" Margin="0,0,0,15">
-                                <TextBlock Text="Дальность освещения"/>
+                                <TextBlock x:Name="LblLightRange" Text="Дальность освещения" HorizontalAlignment="Left"/>
                                 <TextBox x:Name="LightRange" Text="10.0" TextChanged="Properties_Changed"/>
                             </StackPanel>
 
                             <StackPanel x:Name="PanelCamera" Visibility="Collapsed">
-                                <TextBlock Text="Угол обзора"/>
-                                <TextBox x:Name="FOV" Text="60" TextChanged="Properties_Changed"/>
+                                <TextBlock x:Name="LblFov" Text="Угол обзора" HorizontalAlignment="Left"/>
+                                <TextBox x:Name="FOV" Text="75" TextChanged="Properties_Changed"/>
                             </StackPanel>
 
                         </StackPanel>
                     </TabItem>
 
-                    <TabItem Header="Рендеринг">
+                    <TabItem Header="Рендеринг" Height="26" VerticalAlignment="Top">
                         <StackPanel Margin="10">
                             <TextBlock Text="Настройки рендеринга" FontWeight="Bold" FontSize="14" HorizontalAlignment="Center" Margin="0,5,0,15"/>
 
@@ -226,22 +251,29 @@
                                 <RadioButton x:Name="RadioSolid" Content="Световые карты" Foreground="{StaticResource TextColor}" ToolTip="Отображение объектов с наложенными световыми картами"/>
                             </StackPanel>
 
-                            <CheckBox x:Name="CheckGrid" Content="Сетка" IsChecked="True" Foreground="{StaticResource TextColor}" ToolTip="Отображение сетки на нулевом Y" Margin="0,0,0,15"/>
+                            <StackPanel Orientation="Horizontal" Margin="0,0,0,15">
+                                <CheckBox x:Name="CheckGrid" Content="" IsChecked="True" HorizontalAlignment="Left" Foreground="{StaticResource TextColor}" ToolTip="Отображение сетки на нулевом Y"/>
+                                <TextBlock Text="Сетка" ToolTip="Отображение сетки на нулевом Y"/>
+                            </StackPanel>
 
                             <TextBlock Text="Глубина трассировки"/>
-                            <Grid Margin="0,5,0,15" Height="28" ToolTip="Максимальное число переотражений луча">
+                            <Grid Margin="0,0,0,15" Height="28" ToolTip="Максимальное число переотражений луча">
                                 <Grid.ColumnDefinitions>
                                     <ColumnDefinition Width="*"/>
                                     <ColumnDefinition Width="40"/>
                                 </Grid.ColumnDefinitions>
                                 <Slider x:Name="SliderTraceDepth" Minimum="1" Maximum="10" Value="3" IsSnapToTickEnabled="True" TickFrequency="1" Margin="0,5,0,0" ValueChanged="SliderTraceDepth_Changed"/>
-                                <TextBox x:Name="TraceDepth" Grid.Column="1" Text="3" TextChanged="TraceDepth_Changed"/>
+                                <TextBox x:Name="TraceDepth" Grid.Column="1" Text="3"
+                                         TextChanged="TraceDepth_Changed"
+                                         LostFocus="TraceDepth_LostFocus"
+                                         KeyDown="TraceDepth_KeyDown"
+                                         GotKeyboardFocus="TraceDepth_GotKeyboardFocus"/>
                             </Grid>
                             
 
                             <Button x:Name="BtnRender" Content="Запустить рендер" FontWeight="Bold" FontSize="14" Padding="10" Background="#007ACC" BorderThickness="0" ToolTip="Запускает рендер световых карт всех объектов и отображает их (F5)"/>
 
-                            <TextBlock Text="Предпросмотр световой карты" Margin="0,20,0,5" HorizontalAlignment="Center"/>
+                            <TextBlock Text="Предпросмотр световой карты" Margin="0,10,0,5" HorizontalAlignment="Center"/>
                             <Border BorderBrush="{StaticResource BorderColor}" BorderThickness="1" Width="270" Height="270" Background="{StaticResource DarkBg}">
 
                                 <Image x:Name="LightmapPreviewImage" Stretch="Uniform"

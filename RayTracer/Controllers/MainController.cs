@@ -252,44 +252,76 @@ namespace RayTracer.Controllers
         /// <param name="data">Свойства</param>
         private void ApplyObjectProperties(object? selectedItem, ObjectPropertiesData data)
         {
-            if (selectedItem == null) return;
+            if (selectedItem == null || data.ChangedGroup == PropertyEditGroup.None) return;
 
             if (selectedItem is Camera cam)
             {
-                cam.Position = data.Position;
-                cam.Direction = data.Direction;
-                cam.FovDegrees = data.FovDegrees;
+                switch (data.ChangedGroup)
+                {
+                    case PropertyEditGroup.Position:
+                        cam.Position = data.Position;
+                        break;
+                    case PropertyEditGroup.Rotation:
+                        cam.Direction = RotationUtils.AnglesToDirection(Math.Clamp(data.RotX, -89f, 89f), data.RotY);
+                        break;
+                    case PropertyEditGroup.CameraFov:
+                        cam.FovDegrees = data.FovDegrees;
+                        break;
+                }
             }
             else if (selectedItem is SceneObject obj)
             {
-                obj.LightmapRes = data.LightmapRes;
-                obj.Center = data.Position;
-                obj.Material.Reflectivity = data.Reflectivity;
-
-                if (obj is Sphere sphere) sphere.Radius = data.Radius;
-                else if (obj is Cube cube) cube.Side = data.Side;
-                else if (obj is Cylinder cyl)
+                switch (data.ChangedGroup)
                 {
-                    cyl.Radius = data.CylRadius;
-                    cyl.Height = data.Height;
+                    case PropertyEditGroup.Position:
+                        obj.Center = data.Position;
+                        break;
+                    case PropertyEditGroup.LightmapRes:
+                        obj.LightmapRes = data.LightmapRes;
+                        break;
+                    case PropertyEditGroup.Reflectivity:
+                        obj.Material.Reflectivity = data.Reflectivity;
+                        break;
+                    case PropertyEditGroup.SphereRadius when obj is Sphere sphere:
+                        sphere.Radius = data.Radius;
+                        break;
+                    case PropertyEditGroup.CubeSide when obj is Cube cube:
+                        cube.Side = data.Side;
+                        break;
+                    case PropertyEditGroup.CylinderSize when obj is Cylinder cyl:
+                        cyl.Radius = data.CylRadius;
+                        cyl.Height = data.Height;
+                        break;
                 }
             }
             else if (selectedItem is Light light)
             {
-                light.Intensity = data.LightIntensity;
-
-                if (light is GlobalLight gl) gl.Direction = data.Direction;
-                else if (light is PointLight pl)
+                switch (data.ChangedGroup)
                 {
-                    pl.Position = data.Position;
-                    pl.Range = data.LightRange;
-                }
-                else if (light is SpotLight sl)
-                {
-                    sl.Position = data.Position;
-                    sl.Direction = data.Direction;
-                    sl.CutOffAngle = data.SpotAngle;
-                    sl.Range = data.LightRange;
+                    case PropertyEditGroup.LightIntensity:
+                        light.Intensity = data.LightIntensity;
+                        break;
+                    case PropertyEditGroup.Position when light is PointLight pl:
+                        pl.Position = data.Position;
+                        break;
+                    case PropertyEditGroup.Position when light is SpotLight sl:
+                        sl.Position = data.Position;
+                        break;
+                    case PropertyEditGroup.Rotation when light is GlobalLight gl:
+                        gl.Direction = RotationUtils.AnglesToDirection(Math.Clamp(data.RotX, -90f, 90f), data.RotY);
+                        break;
+                    case PropertyEditGroup.Rotation when light is SpotLight sl:
+                        sl.Direction = RotationUtils.AnglesToDirection(Math.Clamp(data.RotX, -90f, 90f), data.RotY);
+                        break;
+                    case PropertyEditGroup.LightRange when light is PointLight pl:
+                        pl.Range = data.LightRange;
+                        break;
+                    case PropertyEditGroup.LightRange when light is SpotLight sl:
+                        sl.Range = data.LightRange;
+                        break;
+                    case PropertyEditGroup.SpotAngle when light is SpotLight sl:
+                        sl.CutOffAngle = data.SpotAngle;
+                        break;
                 }
             }
 
