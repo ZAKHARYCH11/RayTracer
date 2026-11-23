@@ -512,28 +512,38 @@ namespace RayTracer.Views
         }
 
         /// <summary>
-        /// бработка переименования объекта
+        /// Обработка переименования объекта
         /// </summary>
         private void MenuRename_Click(object sender, RoutedEventArgs e)
         {
-            if (sender is System.Windows.Controls.MenuItem menuItem && menuItem.DataContext is object obj)
+            if (sender is System.Windows.Controls.MenuItem menuItem)
             {
-                if (obj is Camera) return;
+                StartRename(menuItem.DataContext);
+            }
+        }
 
-                var listBoxItem = (System.Windows.Controls.ListBoxItem)SceneObjectsList.ItemContainerGenerator.ContainerFromItem(obj);
-                if (listBoxItem != null)
+        /// <summary>
+        /// Переводит выбранный элемент списка в режим редактирования имени
+        /// </summary>
+        private void StartRename(object? obj)
+        {
+            if (obj == null || obj is Camera) return;
+
+            SceneObjectsList.ScrollIntoView(obj);
+            SceneObjectsList.UpdateLayout();
+
+            if (SceneObjectsList.ItemContainerGenerator.ContainerFromItem(obj) is System.Windows.Controls.ListBoxItem listBoxItem)
+            {
+                var nameText = FindVisualChild<System.Windows.Controls.TextBlock>(listBoxItem, "NameText");
+                var nameInput = FindVisualChild<System.Windows.Controls.TextBox>(listBoxItem, "NameInput");
+
+                if (nameText != null && nameInput != null)
                 {
-                    var nameText = FindVisualChild<System.Windows.Controls.TextBlock>(listBoxItem, "NameText");
-                    var nameInput = FindVisualChild<System.Windows.Controls.TextBox>(listBoxItem, "NameInput");
-
-                    if (nameText != null && nameInput != null)
-                    {
-                        nameText.Visibility = Visibility.Collapsed;
-                        nameInput.Visibility = Visibility.Visible;
-                        nameInput.Text = obj.ToString();
-                        nameInput.Focus();
-                        nameInput.SelectAll();
-                    }
+                    nameText.Visibility = Visibility.Collapsed;
+                    nameInput.Visibility = Visibility.Visible;
+                    nameInput.Text = obj.ToString();
+                    nameInput.Focus();
+                    nameInput.SelectAll();
                 }
             }
         }
@@ -616,11 +626,10 @@ namespace RayTracer.Views
         /// <summary>
         /// Обработка нажатия по области предпросмотра световой карты
         /// </summary>
-        private void LightmapPreviewImage_MouseLeftButtonDown(object sender, System.Windows.Input.MouseButtonEventArgs e)
+        private void BtnLightmapPreview_Click(object sender, RoutedEventArgs e)
         {
             if (LightmapPreviewImage.Source == null) return;
 
-            e.Handled = true;
             var viewer = new LightmapWindow(LightmapPreviewImage.Source) { Owner = this };
             viewer.Show();
             viewer.Activate();
@@ -676,6 +685,13 @@ namespace RayTracer.Views
             if (!e.IsRepeat && !isTypingInTextBox && key == System.Windows.Input.Key.Delete)
             {
                 DeleteRequested?.Invoke(SceneObjectsList.SelectedItem);
+                e.Handled = true;
+                return;
+            }
+            // Переименовать
+            if (!e.IsRepeat && !isRenaming && key == System.Windows.Input.Key.F2)
+            {
+                StartRename(SceneObjectsList.SelectedItem);
                 e.Handled = true;
                 return;
             }

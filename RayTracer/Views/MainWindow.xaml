@@ -108,9 +108,9 @@
 
                                 <Grid.ContextMenu>
                                     <ContextMenu>
-                                        <MenuItem Header="Переименовать" Click="MenuRename_Click"/>
+                                        <MenuItem Header="Переименовать" InputGestureText="F2" Click="MenuRename_Click"/>
                                         <MenuItem Header="Клонировать" InputGestureText="Ctrl+D" Click="MenuClone_Click"/>
-                                        <MenuItem Header="Удалить" InputGestureText="Del" Click="MenuDelete_Click"/>
+                                        <MenuItem Header="Удалить" InputGestureText="Delete" Click="MenuDelete_Click"/>
                                     </ContextMenu>
                                 </Grid.ContextMenu>
                             </Grid>
@@ -274,12 +274,42 @@
                             <Button x:Name="BtnRender" Content="Запустить рендер" FontWeight="Bold" FontSize="14" Padding="10" Background="#007ACC" BorderThickness="0" ToolTip="Запускает рендер световых карт всех объектов и отображает их (F5)"/>
 
                             <TextBlock Text="Предпросмотр световой карты" Margin="0,10,0,5" HorizontalAlignment="Center"/>
-                            <Border BorderBrush="{StaticResource BorderColor}" BorderThickness="1" Width="270" Height="270" Background="{StaticResource DarkBg}">
-
-                                <Image x:Name="LightmapPreviewImage" Stretch="Uniform"
-                                       Cursor="Hand" ToolTip="Нажмите для открытия в полном размере"
-                                       MouseLeftButtonDown="LightmapPreviewImage_MouseLeftButtonDown"/>
-                            </Border>
+                            <Button x:Name="BtnLightmapPreview"
+                                    Width="270" Height="270"
+                                    Margin="0" Padding="0"
+                                    Cursor="Hand"
+                                    FocusVisualStyle="{x:Null}"
+                                    ToolTip="Нажмите для открытия в полном размере (Enter)"
+                                    Click="BtnLightmapPreview_Click">
+                                <Button.Style>
+                                    <Style TargetType="Button">
+                                        <Setter Property="Background" Value="{StaticResource DarkBg}"/>
+                                        <Setter Property="BorderBrush" Value="{StaticResource BorderColor}"/>
+                                        <Setter Property="BorderThickness" Value="1"/>
+                                        <Setter Property="Template">
+                                            <Setter.Value>
+                                                <ControlTemplate TargetType="Button">
+                                                    <Border x:Name="PreviewBorder"
+                                                            Background="{TemplateBinding Background}"
+                                                            BorderBrush="{TemplateBinding BorderBrush}"
+                                                            BorderThickness="{TemplateBinding BorderThickness}">
+                                                        <ContentPresenter HorizontalAlignment="Stretch" VerticalAlignment="Stretch"/>
+                                                    </Border>
+                                                    <ControlTemplate.Triggers>
+                                                        <Trigger Property="IsMouseOver" Value="True">
+                                                            <Setter TargetName="PreviewBorder" Property="BorderBrush" Value="{StaticResource SelectedBg}"/>
+                                                        </Trigger>
+                                                        <Trigger Property="IsKeyboardFocused" Value="True">
+                                                            <Setter TargetName="PreviewBorder" Property="BorderBrush" Value="{StaticResource Pressed}"/>
+                                                        </Trigger>
+                                                    </ControlTemplate.Triggers>
+                                                </ControlTemplate>
+                                            </Setter.Value>
+                                        </Setter>
+                                    </Style>
+                                </Button.Style>
+                                <Image x:Name="LightmapPreviewImage" Stretch="Uniform"/>
+                            </Button>
                         </StackPanel>
                     </TabItem>
 

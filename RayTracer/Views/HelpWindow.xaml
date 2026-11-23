@@ -62,6 +62,7 @@
                             <RowDefinition Height="Auto"/>
                             <RowDefinition Height="Auto"/>
                             <RowDefinition Height="Auto"/>
+                            <RowDefinition Height="Auto"/>
                         </Grid.RowDefinitions>
 
                         <TextBlock Grid.Row="0" Grid.Column="0" Text="Ctrl + O" FontWeight="Bold" Margin="0,2"/>
@@ -73,32 +74,35 @@
                         <TextBlock Grid.Row="2" Grid.Column="0" Text="Ctrl + Shift + S" FontWeight="Bold" Margin="0,2"/>
                         <TextBlock Grid.Row="2" Grid.Column="1" Text="Сохранить сцену как..." Margin="0,2"/>
 
-                        <TextBlock Grid.Row="3" Grid.Column="0" Text="Ctrl + D" FontWeight="Bold" Margin="0,2"/>
-                        <TextBlock Grid.Row="3" Grid.Column="1" Text="Клонировать выбранный объект или свет" Margin="0,2"/>
+                        <TextBlock Grid.Row="3" Grid.Column="0" Text="F2" FontWeight="Bold" Margin="0,2"/>
+                        <TextBlock Grid.Row="3" Grid.Column="1" Text="Переименовать выбранный объект" Margin="0,2"/>
 
-                        <TextBlock Grid.Row="4" Grid.Column="0" Text="Delete" FontWeight="Bold" Margin="0,2"/>
-                        <TextBlock Grid.Row="4" Grid.Column="1" Text="Удалить выбранный объект (с подтверждением)" Margin="0,2"/>
+                        <TextBlock Grid.Row="4" Grid.Column="0" Text="Ctrl + D" FontWeight="Bold" Margin="0,2"/>
+                        <TextBlock Grid.Row="4" Grid.Column="1" Text="Клонировать выбранный объект" Margin="0,2"/>
 
-                        <TextBlock Grid.Row="5" Grid.Column="0" Text="F5" FontWeight="Bold" Margin="0,2"/>
-                        <TextBlock Grid.Row="5" Grid.Column="1" Text="Запустить расчёт световых карт" Margin="0,2"/>
+                        <TextBlock Grid.Row="5" Grid.Column="0" Text="Delete" FontWeight="Bold" Margin="0,2"/>
+                        <TextBlock Grid.Row="5" Grid.Column="1" Text="Удалить выбранный объект" Margin="0,2"/>
 
-                        <TextBlock Grid.Row="6" Grid.Column="0" Text="F1" FontWeight="Bold" Margin="0,2"/>
-                        <TextBlock Grid.Row="6" Grid.Column="1" Text="Открыть окно справки" Margin="0,2"/>
+                        <TextBlock Grid.Row="6" Grid.Column="0" Text="F5" FontWeight="Bold" Margin="0,2"/>
+                        <TextBlock Grid.Row="6" Grid.Column="1" Text="Запустить расчёт световых карт" Margin="0,2"/>
 
-                        <TextBlock Grid.Row="7" Grid.Column="0" Text="Enter" FontWeight="Bold" Margin="0,2"/>
-                        <TextBlock Grid.Row="7" Grid.Column="1" Text="Подтвердить переименование / выбор" Margin="0,2"/>
+                        <TextBlock Grid.Row="7" Grid.Column="0" Text="F1" FontWeight="Bold" Margin="0,2"/>
+                        <TextBlock Grid.Row="7" Grid.Column="1" Text="Открыть окно справки" Margin="0,2"/>
 
-                        <TextBlock Grid.Row="8" Grid.Column="0" Text="Esc" FontWeight="Bold" Margin="0,2"/>
-                        <TextBlock Grid.Row="8" Grid.Column="1" Text="Возврат / отмена переименования / закрытие окон и диалогов" TextWrapping="Wrap" Margin="0,2"/>
+                        <TextBlock Grid.Row="8" Grid.Column="0" Text="Enter" FontWeight="Bold" Margin="0,2"/>
+                        <TextBlock Grid.Row="8" Grid.Column="1" Text="Подтвердить / выборать" Margin="0,2"/>
 
-                        <TextBlock Grid.Row="9" Grid.Column="0" Text="ПКМ + WASD" FontWeight="Bold" Margin="0,2"/>
-                        <TextBlock Grid.Row="9" Grid.Column="1" Text="Вращение и перемещение камеры в 3D-предпросмотре" Margin="0,2"/>
+                        <TextBlock Grid.Row="9" Grid.Column="0" Text="Esc" FontWeight="Bold" Margin="0,2"/>
+                        <TextBlock Grid.Row="9" Grid.Column="1" Text="Возврат / отмена  / закрытие окон и диалогов" TextWrapping="Wrap" Margin="0,2"/>
 
-                        <TextBlock Grid.Row="10" Grid.Column="0" Text="Shift" FontWeight="Bold" Margin="0,2"/>
-                        <TextBlock Grid.Row="10" Grid.Column="1" Text="Увеличение скорости перемещения" Margin="0,2"/>
+                        <TextBlock Grid.Row="10" Grid.Column="0" Text="ПКМ + WASD" FontWeight="Bold" Margin="0,2"/>
+                        <TextBlock Grid.Row="10" Grid.Column="1" Text="Вращение и перемещение камеры в 3D-предпросмотре" Margin="0,2"/>
 
-                        <TextBlock Grid.Row="11" Grid.Column="0" Text="Alt + F4" FontWeight="Bold" Margin="0,2"/>
-                        <TextBlock Grid.Row="11" Grid.Column="1" Text="Выход из приложения" Margin="0,2"/>
+                        <TextBlock Grid.Row="11" Grid.Column="0" Text="Shift" FontWeight="Bold" Margin="0,2"/>
+                        <TextBlock Grid.Row="11" Grid.Column="1" Text="Увеличение скорости перемещения" Margin="0,2"/>
+
+                        <TextBlock Grid.Row="12" Grid.Column="0" Text="Alt + F4" FontWeight="Bold" Margin="0,2"/>
+                        <TextBlock Grid.Row="12" Grid.Column="1" Text="Выход из приложения" Margin="0,2"/>
                     </Grid>
                 </Border>
             </StackPanel>
