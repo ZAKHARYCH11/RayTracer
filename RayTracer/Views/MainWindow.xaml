@@ -13,7 +13,6 @@
         Background="{StaticResource WindowBg}"
         WindowStartupLocation="CenterScreen"
         PreviewKeyDown="Window_PreviewKeyDown"
-        KeyUp="Window_KeyUp"
         Closing="Window_Closing">
 
     <DockPanel>
@@ -132,6 +131,7 @@
                 <TabControl>
 
                     <TabItem Header="Свойства">
+                        <ScrollViewer VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled">
                         <StackPanel x:Name="PropertiesContainer" Margin="10" Visibility="Hidden">
 
                             <TextBlock Text="Настройки объекта" FontWeight="Bold" FontSize="14" HorizontalAlignment="Center" Margin="0,5,0,15"/>
@@ -160,18 +160,32 @@
 
                             <StackPanel x:Name="PanelDirection" Visibility="Collapsed" Margin="0,0,0,15">
                                 <TextBlock Text="Поворот"/>
-                                <Grid Margin="0,5,0,0">
-                                    <Grid.ColumnDefinitions>
-                                        <ColumnDefinition Width="Auto"/>
-                                        <ColumnDefinition Width="*"/>
-                                        <ColumnDefinition Width="Auto"/>
-                                        <ColumnDefinition Width="*"/>
-                                    </Grid.ColumnDefinitions>
-                                    <TextBlock x:Name="LblRotX" Grid.Column="0" Text="X" VerticalAlignment="Center" Margin="0,0,4,0" ToolTip="Наклон вверх/вниз (Pitch)"/>
-                                    <TextBox Grid.Column="1" x:Name="RotX" Text="0.0" Margin="0,0,8,0" TextChanged="Properties_Changed"/>
-                                    <TextBlock x:Name="LblRotY" Grid.Column="2" Text="Y" VerticalAlignment="Center" Margin="0,0,4,0" ToolTip="Поворот влево/вправо (Yaw)"/>
-                                    <TextBox Grid.Column="3" x:Name="RotY" Text="0.0" TextChanged="Properties_Changed"/>
-                                </Grid>
+                                <UniformGrid x:Name="GridRotation" Columns="3" Margin="0,5,0,0">
+                                    <Grid Margin="0,0,5,0">
+                                        <Grid.ColumnDefinitions>
+                                            <ColumnDefinition Width="Auto"/>
+                                            <ColumnDefinition Width="*"/>
+                                        </Grid.ColumnDefinitions>
+                                        <TextBlock x:Name="LblRotX" Grid.Column="0" Text="X" VerticalAlignment="Center" Margin="0,0,4,0" Foreground="{StaticResource TextColor}"/>
+                                        <TextBox Grid.Column="1" x:Name="RotX" Text="0.0" TextChanged="Properties_Changed"/>
+                                    </Grid>
+                                    <Grid Margin="0,0,5,0">
+                                        <Grid.ColumnDefinitions>
+                                            <ColumnDefinition Width="Auto"/>
+                                            <ColumnDefinition Width="*"/>
+                                        </Grid.ColumnDefinitions>
+                                        <TextBlock x:Name="LblRotY" Grid.Column="0" Text="Y" VerticalAlignment="Center" Margin="0,0,4,0" Foreground="{StaticResource TextColor}"/>
+                                        <TextBox Grid.Column="1" x:Name="RotY" Text="0.0" TextChanged="Properties_Changed"/>
+                                    </Grid>
+                                    <Grid x:Name="PanelRotZ">
+                                        <Grid.ColumnDefinitions>
+                                            <ColumnDefinition Width="Auto"/>
+                                            <ColumnDefinition Width="*"/>
+                                        </Grid.ColumnDefinitions>
+                                        <TextBlock x:Name="LblRotZ" Grid.Column="0" Text="Z" VerticalAlignment="Center" Margin="0,0,4,0" Foreground="{StaticResource TextColor}"/>
+                                        <TextBox Grid.Column="1" x:Name="RotZ" Text="0.0" TextChanged="Properties_Changed"/>
+                                    </Grid>
+                                </UniformGrid>
                             </StackPanel>
 
                             <StackPanel x:Name="PanelSpotAngle" Visibility="Collapsed" Margin="0,0,0,15">
@@ -239,9 +253,11 @@
                             </StackPanel>
 
                         </StackPanel>
+                        </ScrollViewer>
                     </TabItem>
 
                     <TabItem Header="Рендеринг" Height="26" VerticalAlignment="Top">
+                        <ScrollViewer VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled">
                         <StackPanel Margin="10">
                             <TextBlock Text="Настройки рендеринга" FontWeight="Bold" FontSize="14" HorizontalAlignment="Center" Margin="0,5,0,15"/>
 
@@ -275,7 +291,7 @@
 
                             <TextBlock Text="Предпросмотр световой карты" Margin="0,10,0,5" HorizontalAlignment="Center"/>
                             <Button x:Name="BtnLightmapPreview"
-                                    Width="270" Height="270"
+                                    Width="256" Height="256"
                                     Margin="0" Padding="0"
                                     Cursor="Hand"
                                     FocusVisualStyle="{x:Null}"
@@ -311,6 +327,7 @@
                                 <Image x:Name="LightmapPreviewImage" Stretch="Uniform"/>
                             </Button>
                         </StackPanel>
+                        </ScrollViewer>
                     </TabItem>
 
                 </TabControl>

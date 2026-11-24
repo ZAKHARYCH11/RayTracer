@@ -43,6 +43,7 @@ namespace RayTracer.Views
         public Vector3 Position;
         public float RotX;
         public float RotY;
+        public float RotZ;
         public float SpotAngle;
         public float Radius;
         public float Side;
@@ -70,8 +71,6 @@ namespace RayTracer.Views
 
         private float _minObjSize = 0.01f;
         private float _maxObjSize = 10000f;
-        private float _minPitch = -90f;
-        private float _maxPitch = 90f;
         private float _minPitchCam = -89f;
         private float _maxPitchCam = 89f;
         private float _minFOV = 1f;
@@ -105,6 +104,7 @@ namespace RayTracer.Views
                 { _window.PosZ, PropertyEditGroup.Position },
                 { _window.RotX, PropertyEditGroup.Rotation },
                 { _window.RotY, PropertyEditGroup.Rotation },
+                { _window.RotZ, PropertyEditGroup.Rotation },
                 { _window.FOV, PropertyEditGroup.CameraFov },
                 { _window.Radius, PropertyEditGroup.SphereRadius },
                 { _window.Side, PropertyEditGroup.CubeSide },
@@ -129,9 +129,10 @@ namespace RayTracer.Views
             _dragHelper.Attach(_window.LblPosZ, _window.PosZ, 0.02f, onBeforeDrag: CommitActiveField);
 
             _dragHelper.Attach(_window.LblRotX, _window.RotX, 0.25f,
-                () => (_currentItem is Camera) ? (_minPitchCam, _maxPitchCam) : (_minPitch, _maxPitch),
-                onBeforeDrag: CommitActiveField);
+            () => _currentItem is Camera ? (_minPitchCam, _maxPitchCam) : (float.MinValue, float.MaxValue),
+            onBeforeDrag: CommitActiveField);
             _dragHelper.Attach(_window.LblRotY, _window.RotY, 0.25f, onBeforeDrag: CommitActiveField);
+            _dragHelper.Attach(_window.LblRotZ, _window.RotZ, 0.25f, onBeforeDrag: CommitActiveField);
 
             _dragHelper.Attach(_window.LblFov, _window.FOV, 0.25f, _minFOV, _maxFOV, onBeforeDrag: CommitActiveField);
             _dragHelper.Attach(_window.LblRadius, _window.Radius, 0.02f, _minObjSize, _maxObjSize, onBeforeDrag: CommitActiveField);
@@ -177,6 +178,8 @@ namespace RayTracer.Views
                 _window.TxtObjType.Text = "Тип объекта: Камера";
                 _window.PanelCoordinates.Visibility = Visibility.Visible;
                 _window.PanelDirection.Visibility = Visibility.Visible;
+                _window.GridRotation.Columns = 2;
+                _window.PanelRotZ.Visibility = Visibility.Collapsed;
                 _window.PanelCamera.Visibility = Visibility.Visible;
 
                 _window.PosX.Text = cam.Position.X.ToString("0.00", culture);
@@ -216,6 +219,12 @@ namespace RayTracer.Views
                     _window.TxtObjType.Text = "Тип объекта: Куб";
                     _window.PanelCube.Visibility = Visibility.Visible;
                     _window.Side.Text = cube.Side.ToString("0.00", culture);
+                    _window.PanelDirection.Visibility = Visibility.Visible;
+                    _window.GridRotation.Columns = 3;
+                    _window.PanelRotZ.Visibility = Visibility.Visible;
+                    _window.RotX.Text = obj.Rotation.X.ToString("0.00", culture);
+                    _window.RotY.Text = obj.Rotation.Y.ToString("0.00", culture);
+                    _window.RotZ.Text = obj.Rotation.Z.ToString("0.00", culture);
                 }
                 else if (obj is Cylinder cyl)
                 {
@@ -223,6 +232,12 @@ namespace RayTracer.Views
                     _window.PanelCylinder.Visibility = Visibility.Visible;
                     _window.CylRadius.Text = cyl.Radius.ToString("0.00", culture);
                     _window.Height.Text = cyl.Height.ToString("0.00", culture);
+                    _window.PanelDirection.Visibility = Visibility.Visible;
+                    _window.GridRotation.Columns = 3;
+                    _window.PanelRotZ.Visibility = Visibility.Visible;
+                    _window.RotX.Text = obj.Rotation.X.ToString("0.00", culture);
+                    _window.RotY.Text = obj.Rotation.Y.ToString("0.00", culture);
+                    _window.RotZ.Text = obj.Rotation.Z.ToString("0.00", culture);
                 }
             }
             else if (selectedItem is Light light)
@@ -237,6 +252,9 @@ namespace RayTracer.Views
                 {
                     _window.TxtObjType.Text = "Тип объекта: Глобальный источник света";
                     _window.PanelDirection.Visibility = Visibility.Visible;
+
+                    _window.GridRotation.Columns = 2;
+                    _window.PanelRotZ.Visibility = Visibility.Collapsed;
 
                     var (pitch, yaw) = RotationUtils.DirectionToAngles(gl.Direction);
                     _window.RotX.Text = pitch.ToString("0.00", culture);
@@ -264,6 +282,9 @@ namespace RayTracer.Views
                     _window.PosX.Text = sl.Position.X.ToString("0.00", culture);
                     _window.PosY.Text = sl.Position.Y.ToString("0.00", culture);
                     _window.PosZ.Text = sl.Position.Z.ToString("0.00", culture);
+
+                    _window.GridRotation.Columns = 2;
+                    _window.PanelRotZ.Visibility = Visibility.Collapsed;
 
                     var (pitch, yaw) = RotationUtils.DirectionToAngles(sl.Direction);
                     _window.RotX.Text = pitch.ToString("0.00", culture);
@@ -416,15 +437,16 @@ namespace RayTracer.Views
 
             if (TryParseFloat(tb.Text, out float val))
             {
-                if (tb == _window.PosX || tb == _window.PosY || tb == _window.PosZ || tb == _window.RotY)
+                if (tb == _window.PosX || tb == _window.PosY || tb == _window.PosZ || tb == _window.RotY || tb == _window.RotZ)
                 {
                     tb.Text = val.ToString("0.00", culture);
                 }
                 else if (tb == _window.RotX)
                 {
-                    float minPitch = (_currentItem is Camera) ? _minPitchCam : _minPitch;
-                    float maxPitch = (_currentItem is Camera) ? _maxPitchCam : _maxPitch;
-                    tb.Text = Math.Clamp(val, minPitch, maxPitch).ToString("0.00", culture);
+                    if (_currentItem is Camera)
+                        tb.Text = Math.Clamp(val, _minPitchCam, _maxPitchCam).ToString("0.00", culture);
+                    else
+                        tb.Text = val.ToString("0.00", culture);
                 }
                 else if (tb == _window.FOV)
                 {
@@ -500,12 +522,19 @@ namespace RayTracer.Views
 
                 case PropertyEditGroup.Rotation:
                     if (!TryParseFloat(_window.RotX.Text, out float rx) ||
-                        !TryParseFloat(_window.RotY.Text, out float ry))
+                    !TryParseFloat(_window.RotY.Text, out float ry))
                         return false;
-                    float minPitch = (item is Camera) ? _minPitchCam : _minPitch;
-                    float maxPitch = (item is Camera) ? _maxPitchCam : _maxPitch;
-                    data.RotX = Math.Clamp(rx, minPitch, maxPitch);
+
+                    float rz = 0f;
+                    if ((item is Cube || item is Cylinder) && !TryParseFloat(_window.RotZ.Text, out rz))
+                        return false;
+
+                    if (item is Camera)
+                        rx = Math.Clamp(rx, _minPitchCam, _maxPitchCam);
+
+                    data.RotX = rx;
                     data.RotY = ry;
+                    data.RotZ = rz;
                     return true;
 
                 case PropertyEditGroup.CameraFov:
@@ -594,6 +623,9 @@ namespace RayTracer.Views
                 if (tb == _window.PosX) return obj.Center.X.ToString("0.00", c);
                 if (tb == _window.PosY) return obj.Center.Y.ToString("0.00", c);
                 if (tb == _window.PosZ) return obj.Center.Z.ToString("0.00", c);
+                if (tb == _window.RotX) return obj.Rotation.X.ToString("0.00", c);
+                if (tb == _window.RotY) return obj.Rotation.Y.ToString("0.00", c);
+                if (tb == _window.RotZ) return obj.Rotation.Z.ToString("0.00", c);
                 if (tb == _window.Reflectivity) return obj.Material.Reflectivity.ToString("0.00", c);
                 if (tb == _window.ObjResolution) return obj.LightmapRes.ToString();
                 if (tb == _window.Radius && obj is Sphere sp) return sp.Radius.ToString("0.00", c);

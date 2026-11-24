@@ -276,6 +276,9 @@ namespace RayTracer.Controllers
                     case PropertyEditGroup.Position:
                         obj.Center = data.Position;
                         break;
+                    case PropertyEditGroup.Rotation:
+                        obj.Rotation = new Vector3(data.RotX, data.RotY, data.RotZ);
+                        break;
                     case PropertyEditGroup.LightmapRes:
                         obj.LightmapRes = data.LightmapRes;
                         break;
@@ -308,10 +311,10 @@ namespace RayTracer.Controllers
                         sl.Position = data.Position;
                         break;
                     case PropertyEditGroup.Rotation when light is GlobalLight gl:
-                        gl.Direction = RotationUtils.AnglesToDirection(Math.Clamp(data.RotX, -90f, 90f), data.RotY);
+                        gl.Direction = RotationUtils.AnglesToDirection(data.RotX, data.RotY);
                         break;
                     case PropertyEditGroup.Rotation when light is SpotLight sl:
-                        sl.Direction = RotationUtils.AnglesToDirection(Math.Clamp(data.RotX, -90f, 90f), data.RotY);
+                        sl.Direction = RotationUtils.AnglesToDirection(data.RotX, data.RotY);
                         break;
                     case PropertyEditGroup.LightRange when light is PointLight pl:
                         pl.Range = data.LightRange;

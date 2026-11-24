@@ -90,9 +90,9 @@ namespace RayTracer.Views
                 if (obj is Sphere sphere)
                     DrawSphere(sphere.Center, sphere.Radius, sphere.Material.Color, isSolid);
                 else if (obj is Cube cube)
-                    DrawCube(cube.Center, cube.Side, cube.Material.Color, isSolid);
+                    DrawCube(cube.Center, cube.GetRotationMatrix(), cube.Side, cube.Material.Color, isSolid);
                 else if (obj is Cylinder cyl)
-                    DrawCylinder(cyl.Center, cyl.Radius, cyl.Height, cyl.Material.Color, isSolid);
+                    DrawCylinder(cyl.Center, cyl.GetRotationMatrix(), cyl.Radius, cyl.Height, cyl.Material.Color, isSolid);
             }
 
             if (isSolid)
@@ -287,11 +287,12 @@ namespace RayTracer.Views
         /// <param name="side">Длина стороны куба</param>
         /// <param name="color">Цвет куба</param>
         /// <param name="isSolid">Включен ли режим отображения световой карты</param>
-        private void DrawCube(Vector3 center, float side, Vector3 color, bool isSolid)
+        private void DrawCube(Vector3 center, Matrix4 rotMatrix, float side, Vector3 color, bool isSolid)
         {
             float half = side / 2.0f;
             GL.PushMatrix();
             GL.Translate(center.X, center.Y, center.Z);
+            GL.MultMatrix(ref rotMatrix);
 
             // Отрисовка каркаса
             if (!isSolid)
@@ -376,13 +377,14 @@ namespace RayTracer.Views
         /// <param name="height">Высота цилиндра</param>
         /// <param name="color">Цвет цилиндра</param>
         /// /// <param name="isSolid">Включен ли режим отображения световой карты</param>
-        private void DrawCylinder(Vector3 center, float radius, float height, Vector3 color, bool isSolid)
+        private void DrawCylinder(Vector3 center, Matrix4 rotMatrix, float radius, float height, Vector3 color, bool isSolid)
         {
             float halfHeight = height / 2.0f;
             int segments = 20;
 
             GL.PushMatrix();
             GL.Translate(center.X, center.Y, center.Z);
+            GL.MultMatrix(ref rotMatrix);
 
             // Отрисовка каркаса
             if (!isSolid)

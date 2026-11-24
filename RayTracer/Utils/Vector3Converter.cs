@@ -10,6 +10,12 @@ namespace RayTracer.Utils
     /// </summary>
     public class Vector3Converter : JsonConverter<Vector3>
     {
+        /// <summary>
+        /// Запись вектора в JSON
+        /// </summary>
+        /// <param name="writer">JSON писатель</param>
+        /// <param name="value">Вектор</param>
+        /// <param name="serializer">JSON сериалайзер</param>
         public override void WriteJson(JsonWriter writer, Vector3 value, JsonSerializer serializer)
         {
             var jo = new JObject
@@ -21,6 +27,15 @@ namespace RayTracer.Utils
             jo.WriteTo(writer);
         }
 
+        /// <summary>
+        /// Чтение ветора из JSON
+        /// </summary>
+        /// <param name="reader">JSON читатель</param>
+        /// <param name="objectType">Тип объекта</param>
+        /// <param name="existingValue">Существующий вектор</param>
+        /// <param name="hasExistingValue">Существует ли вектор</param>
+        /// <param name="serializer">JSON сериалайзер</param>
+        /// <returns>Считанный из JSON вектор</returns>
         public override Vector3 ReadJson(JsonReader reader, Type objectType, Vector3 existingValue, bool hasExistingValue, JsonSerializer serializer)
         {
             var jo = JObject.Load(reader);

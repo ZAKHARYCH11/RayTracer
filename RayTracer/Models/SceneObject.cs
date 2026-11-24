@@ -11,6 +11,7 @@ namespace RayTracer.Models
         private Material _material;
         private string _name;
         private Vector3 _center;
+        private Vector3 _rotation;
         private Lightmap _lightmap;
         private int _lightmapRes;
 
@@ -42,6 +43,15 @@ namespace RayTracer.Models
         }
 
         /// <summary>
+        /// Вектор направления
+        /// </summary>
+        public Vector3 Rotation
+        {
+            get { return _rotation; }
+            set { _rotation = value; }
+        }
+
+        /// <summary>
         /// Световая карта объекта
         /// </summary>
         public Lightmap Lightmap
@@ -64,7 +74,6 @@ namespace RayTracer.Models
             _name = name;
             _material = material;
             _center = center;
-
             _lightmap = GenerateDefaultLightmap();
             _lightmapRes = lightmapRes;
         }
@@ -116,6 +125,19 @@ namespace RayTracer.Models
         /// <param name="normal">Нормаль к точке</param>
         /// <returns>true, если перевод успешный</returns>
         public abstract bool TryGetSurfaceData(float u, float v, out Vector3 posiotion, out Vector3 normal);
+
+        /// <summary>
+        /// Вычисление матрицы вращения из локальных координат объекта в мировые
+        /// </summary>
+        /// <returns>Матрица вращения</returns>
+        public Matrix4 GetRotationMatrix()
+        {
+            float rx = MathHelper.DegreesToRadians(_rotation.X);
+            float ry = MathHelper.DegreesToRadians(_rotation.Y);
+            float rz = MathHelper.DegreesToRadians(_rotation.Z);
+
+            return Matrix4.CreateRotationZ(rz) * Matrix4.CreateRotationX(rx) * Matrix4.CreateRotationY(ry);
+        }
 
         public override string ToString()
         {

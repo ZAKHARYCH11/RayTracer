@@ -34,38 +34,40 @@ namespace RayTracer.Models
         {
             hit = default;
 
+            // Перевод луча в локальные координаты куба
+            Matrix4 rot = GetRotationMatrix();
+            Matrix4 invRot = Matrix4.Transpose(rot);
+
+            Vector3 localOrigin = Vector3.TransformVector(ray.Origin - Center, invRot);
+            Vector3 localDir = Vector3.TransformVector(ray.Direction, invRot).Normalized();
+
             float halfSide = _side / 2.0f;
-            Vector3 min = Center - new Vector3(halfSide);
-            Vector3 max = Center + new Vector3(halfSide);
+            Vector3 min = new Vector3(-halfSide);
+            Vector3 max = new Vector3(halfSide);
 
             // Персечение с плосткостью по оси X
-            float tMin = (min.X - ray.Origin.X) / ray.Direction.X;
-            float tMax = (max.X - ray.Origin.X) / ray.Direction.X;
-
+            float tMin = (min.X - localOrigin.X) / localDir.X;
+            float tMax = (max.X - localOrigin.X) / localDir.X;
             if (tMin > tMax) Swap(ref tMin, ref tMax);
 
             // Персечение с плоскостью по оси Y
-            float tyMin = (min.Y - ray.Origin.Y) / ray.Direction.Y;
-            float tyMax = (max.Y - ray.Origin.Y) / ray.Direction.Y;
-
+            float tyMin = (min.Y - localOrigin.Y) / localDir.Y;
+            float tyMax = (max.Y - localOrigin.Y) / localDir.Y;
             if (tyMin > tyMax) Swap(ref tyMin, ref tyMax);
 
             // Нет пересечения
-            if ((tMin > tyMax) || (tyMin > tMax))
-                return false;
+            if ((tMin > tyMax) || (tyMin > tMax)) return false;
 
             if (tyMin > tMin) tMin = tyMin;
             if (tyMax < tMax) tMax = tyMax;
 
             // Пересечение с плоскостью по оси Z
-            float tzMin = (min.Z - ray.Origin.Z) / ray.Direction.Z;
-            float tzMax = (max.Z - ray.Origin.Z) / ray.Direction.Z;
-
+            float tzMin = (min.Z - localOrigin.Z) / localDir.Z;
+            float tzMax = (max.Z - localOrigin.Z) / localDir.Z;
             if (tzMin > tzMax) Swap(ref tzMin, ref tzMax);
 
             // Нет пересечения
-            if ((tMin > tzMax) || (tzMin > tMax))
-                return false;
+            if ((tMin > tzMax) || (tzMin > tMax)) return false;
 
             if (tzMin > tMin) tMin = tzMin;
             if (tzMax < tMax) tMax = tzMax;
@@ -77,31 +79,28 @@ namespace RayTracer.Models
                 if (t < 0.001f) return false;
             }
 
-            hit.Distance = t;
-            hit.Point = ray.GetPoint(t);
-            hit.Object = this;
-
-            Vector3 localPoint = hit.Point - Center;
-
+            // Вычисление локальной точки и нормали
+            Vector3 localPoint = localOrigin + localDir * t;
             float absX = Math.Abs(localPoint.X);
             float absY = Math.Abs(localPoint.Y);
             float absZ = Math.Abs(localPoint.Z);
+            float epsilon = 0.0001f;
 
-            float eps = 0.0001f;
-
-            if (absX >= absY - eps && absX >= absZ - eps)
-                hit.Normal = new Vector3(Math.Sign(localPoint.X), 0, 0);
-            else if (absY >= absZ - eps)
-                hit.Normal = new Vector3(0, Math.Sign(localPoint.Y), 0);
+            Vector3 localNormal;
+            if (absX >= absY - epsilon && absX >= absZ - epsilon)
+                localNormal = new Vector3(Math.Sign(localPoint.X), 0, 0);
+            else if (absY >= absZ - epsilon)
+                localNormal = new Vector3(0, Math.Sign(localPoint.Y), 0);
             else
-                hit.Normal = new Vector3(0, 0, Math.Sign(localPoint.Z));
+                localNormal = new Vector3(0, 0, Math.Sign(localPoint.Z));
+
+            // Перевод точки и нормали в мировые координаты
+            hit.Distance = t;
+            hit.Point = ray.GetPoint(t);
+            hit.Normal = Vector3.TransformVector(localNormal, rot).Normalized();
+            hit.Object = this;
 
             return true;
-        }
-
-        public override SceneObject Clone()
-        {
-            return new Cube(Name, Center, _side, Material.Clone(), LightmapRes);
         }
 
         public override bool TryGetSurfaceData(float u, float v, out Vector3 position, out Vector3 normal)
@@ -116,37 +115,35 @@ namespace RayTracer.Models
             float localU = (u - col / 3.0f) * 3.0f;
             float localV = (v - row / 2.0f) * 2.0f;
 
-            float half = _side / 2.0f;
-            float lx = -half + localU * _side;
-            float ly = half - localV * _side;
+            float half = Side / 2.0f;
+            float lx = -half + localU * Side;
+            float ly = half - localV * Side;
 
-            position = Vector3.Zero;
-            normal = Vector3.Zero;
+            Vector3 localPos = Vector3.Zero;
+            Vector3 localNormal = Vector3.Zero;
 
             switch (face)
             {
-                case 0:
-                    normal = new Vector3(0, 0, 1);
-                    position = new Vector3(lx, ly, half); break;
-                case 1:
-                    normal = new Vector3(0, 0, -1);
-                    position = new Vector3(-lx, ly, -half); break;
-                case 2:
-                    normal = new Vector3(0, 1, 0);
-                    position = new Vector3(lx, half, -ly); break;
-                case 3:
-                    normal = new Vector3(0, -1, 0);
-                    position = new Vector3(lx, -half, ly); break;
-                case 4:
-                    normal = new Vector3(1, 0, 0);
-                    position = new Vector3(half, ly, -lx); break;
-                case 5:
-                    normal = new Vector3(-1, 0, 0);
-                    position = new Vector3(-half, ly, lx); break;
+                case 0: localNormal = new Vector3(0, 0, 1); localPos = new Vector3(lx, ly, half); break;
+                case 1: localNormal = new Vector3(0, 0, -1); localPos = new Vector3(-lx, ly, -half); break;
+                case 2: localNormal = new Vector3(0, 1, 0); localPos = new Vector3(lx, half, -ly); break;
+                case 3: localNormal = new Vector3(0, -1, 0); localPos = new Vector3(lx, -half, ly); break;
+                case 4: localNormal = new Vector3(1, 0, 0); localPos = new Vector3(half, ly, -lx); break;
+                case 5: localNormal = new Vector3(-1, 0, 0); localPos = new Vector3(-half, ly, lx); break;
             }
 
-            position += Center;
+            // Перевод в мировые координаты
+            Matrix4 rot = GetRotationMatrix();
+            position = Center + Vector3.TransformVector(localPos, rot);
+            normal = Vector3.TransformVector(localNormal, rot).Normalized();
             return true;
+        }
+
+        public override SceneObject Clone()
+        {
+            var clone = new Cube(Name, Center, _side, Material.Clone(), LightmapRes);
+            clone.Rotation = Rotation;
+            return clone;
         }
 
         /// <summary>

@@ -13,7 +13,7 @@ namespace RayTracer.Utils
         {
             TypeNameHandling = TypeNameHandling.Auto,
             Formatting = Formatting.Indented,
-            Converters = new JsonConverter[] { new Vector3Converter() }
+            Converters = new JsonConverter[] { new Vector3Converter(), new LightmapConverter() }
         };
 
         /// <summary>

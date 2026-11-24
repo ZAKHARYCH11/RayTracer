@@ -24,7 +24,7 @@ namespace RayTracer.Views
         private bool _isOpenGlPaused = false;
 
         private bool _isRmbDown = false;
-        private bool _keyW, _keyA, _keyS, _keyD, _keyShift;
+        private bool _suppressContextMenu = false;
         private Point _lastMousePos;
 
         private int _traceDepthBeforeEdit = 3;
@@ -72,6 +72,16 @@ namespace RayTracer.Views
                 _inspector.CommitActiveField();
                 RenderRequested?.Invoke(GetTraceDepth());
             };
+
+            OpenGlControl.LostMouseCapture += (s, e) => StopCameraControl();
+            Deactivated += (s, e) => StopCameraControl();
+
+            AddHandler(System.Windows.Controls.ContextMenuService.ContextMenuOpeningEvent,
+                new System.Windows.Controls.ContextMenuEventHandler((s, e) =>
+                {
+                    if (_isRmbDown || _suppressContextMenu)
+                        e.Handled = true;
+                }), true);
         }
 
         /// <summary>
@@ -268,15 +278,24 @@ namespace RayTracer.Views
             // Упарвление камерой
             if (_isRmbDown)
             {
+                if (System.Windows.Input.Mouse.RightButton != System.Windows.Input.MouseButtonState.Pressed)
+                {
+                    StopCameraControl();
+                    return;
+                }
+
                 int dx = 0;
                 int dy = 0;
-                if (_keyW) dx += 1;
-                if (_keyS) dx -= 1;
-                if (_keyD) dy += 1;
-                if (_keyA) dy -= 1;
+                if (System.Windows.Input.Keyboard.IsKeyDown(System.Windows.Input.Key.W)) dx += 1;
+                if (System.Windows.Input.Keyboard.IsKeyDown(System.Windows.Input.Key.S)) dx -= 1;
+                if (System.Windows.Input.Keyboard.IsKeyDown(System.Windows.Input.Key.D)) dy += 1;
+                if (System.Windows.Input.Keyboard.IsKeyDown(System.Windows.Input.Key.A)) dy -= 1;
+
+                bool shift = System.Windows.Input.Keyboard.IsKeyDown(System.Windows.Input.Key.LeftShift) ||
+                             System.Windows.Input.Keyboard.IsKeyDown(System.Windows.Input.Key.RightShift);
 
                 if (dx != 0 || dy != 0)
-                    CameraMoveRequested?.Invoke(dx, dy, _keyShift, (float)delta.TotalSeconds);
+                    CameraMoveRequested?.Invoke(dx, dy, shift, (float)delta.TotalSeconds);
             }
         }
 
@@ -710,37 +729,38 @@ namespace RayTracer.Views
                 e.Handled = true;
                 return;
             }
-            // Перемещение
-            if (!isTypingInTextBox || _isRmbDown)
-            {
-                if (key == System.Windows.Input.Key.W) _keyW = true;
-                if (key == System.Windows.Input.Key.A) _keyA = true;
-                if (key == System.Windows.Input.Key.S) _keyS = true;
-                if (key == System.Windows.Input.Key.D) _keyD = true;
-                if (key == System.Windows.Input.Key.LeftShift || key == System.Windows.Input.Key.RightShift) _keyShift = true;
-            }
         }
 
         /// <summary>
-        /// Обработка отпускания клавиш клавиатуры
+        /// Остановка управления камерой
         /// </summary>
-        private void Window_KeyUp(object sender, KeyEventArgs e)
+        private void StopCameraControl()
         {
-            if (e.Key == System.Windows.Input.Key.W) _keyW = false;
-            if (e.Key == System.Windows.Input.Key.A) _keyA = false;
-            if (e.Key == System.Windows.Input.Key.S) _keyS = false;
-            if (e.Key == System.Windows.Input.Key.D) _keyD = false;
-            if (e.Key == System.Windows.Input.Key.LeftShift || e.Key == System.Windows.Input.Key.RightShift) _keyShift = false;
+            _isRmbDown = false;
+            if (OpenGlControl.IsMouseCaptured)
+                OpenGlControl.ReleaseMouseCapture();
+
+            if (_suppressContextMenu)
+            {
+                Dispatcher.BeginInvoke(new Action(() => _suppressContextMenu = false),
+                    System.Windows.Threading.DispatcherPriority.Background);
+            }
         }
+
 
         /// <summary>
         /// Обработка нажатия ПКМ по области OpenGL
         /// </summary>
         private void OpenGlControl_MouseRightButtonDown(object sender, System.Windows.Input.MouseButtonEventArgs e)
         {
+            _inspector.CommitActiveField();
+            System.Windows.Input.Keyboard.ClearFocus();
+
             _isRmbDown = true;
-            _lastMousePos = e.GetPosition(null);
+            _suppressContextMenu = true;
+            _lastMousePos = e.GetPosition(this);
             OpenGlControl.CaptureMouse();
+            e.Handled = true;
         }
 
         /// <summary>
@@ -748,8 +768,8 @@ namespace RayTracer.Views
         /// </summary>
         private void OpenGlControl_MouseRightButtonUp(object sender, System.Windows.Input.MouseButtonEventArgs e)
         {
-            _isRmbDown = false;
-            OpenGlControl.ReleaseMouseCapture();
+            StopCameraControl();
+            e.Handled = true;
         }
 
         /// <summary>
@@ -757,15 +777,21 @@ namespace RayTracer.Views
         /// </summary>
         private void OpenGlControl_MouseMove(object sender, System.Windows.Input.MouseEventArgs e)
         {
-            if (_isRmbDown)
-            {
-                Point currentPos = e.GetPosition(null);
-                float dx = (float)(currentPos.X - _lastMousePos.X);
-                float dy = (float)(currentPos.Y - _lastMousePos.Y);
-                _lastMousePos = currentPos;
+            if (!_isRmbDown) return;
 
-                CameraRotateRequested?.Invoke(dx, dy);
+            if (System.Windows.Input.Mouse.RightButton != System.Windows.Input.MouseButtonState.Pressed)
+            {
+                StopCameraControl();
+                return;
             }
+
+            Point currentPos = e.GetPosition(this);
+            float dx = (float)(currentPos.X - _lastMousePos.X);
+            float dy = (float)(currentPos.Y - _lastMousePos.Y);
+            _lastMousePos = currentPos;
+
+            if (dx != 0 || dy != 0)
+                CameraRotateRequested?.Invoke(dx, dy);
         }
 
         /// <summary>
